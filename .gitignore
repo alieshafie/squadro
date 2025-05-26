@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+
+Squadro_GUI_PyGame/
+.vscode/
