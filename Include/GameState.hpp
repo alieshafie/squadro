@@ -13,7 +13,7 @@ class GameState
 {
 public:
     static constexpr int N = Piece::N;
-    static constexpr int COLUMN_LEN = 12; // number of cells per column
+    static constexpr int COLUMN_LEN = 6; // number of cells per column
     std::array<Piece, N> myPieces;
     std::array<Piece, N> opPieces;
     int turn;      // 0=Player1, 1=Player2
