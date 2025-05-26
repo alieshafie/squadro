@@ -1,14 +1,16 @@
 #pragma once
-#include "Position.hpp"
 
 class Piece
 {
 public:
+    static constexpr int N = 5;
     int id;
-    Position pos;
+    int pos;
+    int distance;
     bool forward;
     bool finished;
-    Piece(int id = 0);
-    void move(int distance);
+
+    Piece(int id, int pos = 0, int distance);
+    void move();
     void reset();
 };

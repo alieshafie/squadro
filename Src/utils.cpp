@@ -1,3 +1,2 @@
-
 #include "utils.hpp"
-// TODO: utility functions
+// inline helpers in header

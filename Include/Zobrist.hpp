@@ -1,5 +1,4 @@
 #pragma once
-
 #include "GameState.hpp"
 #include <array>
 
@@ -10,5 +9,5 @@ public:
     static uint64_t hash(const GameState &state);
 
 private:
-    static std::array<uint64_t, 64> table;
+    static std::array<uint64_t, Piece::N * GameState::COLUMN_LEN> table;
 };

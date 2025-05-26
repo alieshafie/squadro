@@ -1,15 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
-project(SquadroAI)
-set(CMAKE_CXX_STANDARD 17)
-set(SOURCES
-src/main.cpp
-src/GameState.cpp
-src/AIEngine.cpp
-src/Zobrist.cpp
-src/utils.cpp
-)
-include_directories(include)
-add_executable(SquadroAI ${SOURCES})
-
-enable_testing()
-add_subdirectory(test)
+project(test_SquadroAI)
+find_package(GTest REQUIRED)
+include_directories(${GTEST_INCLUDE_DIRS} ../include ../utils)
+add_executable(test_gamestate test_gamestate.cpp ../src/GameState.cpp)
+target_link_libraries(test_gamestate ${GTEST_LIBRARIES} pthread)
+add_test(NAME TestGameState COMMAND test_gamestate)
