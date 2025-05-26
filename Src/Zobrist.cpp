@@ -1,14 +1,17 @@
 #include "Zobrist.hpp"
+#include <random>
 
-std::array<uint64_t, 64> Zobrist::table;
+std::array<uint64_t, GameState::N * GameState::COLUMN_LEN> Zobrist::table;
 
 void Zobrist::init()
 {
-    // TODO: generate random values for hashing
+    std::mt19937_64 gen(42);
+    std::uniform_int_distribution<uint64_t> dist;
+    for (auto &v : table)
+        v = dist(gen);
 }
 
 uint64_t Zobrist::hash(const GameState &state)
 {
-    // TODO: implement Zobrist hashing based on pieces
-    return 0;
+    return state.hash;
 }

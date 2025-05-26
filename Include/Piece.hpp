@@ -10,7 +10,7 @@ public:
     bool forward;
     bool finished;
 
-    Piece(int id, int pos = 0, int distance);
+    Piece(int id = 0, int pos = 0, int distance = 0);
     void move();
     void reset();
 };
