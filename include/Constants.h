@@ -22,11 +22,11 @@ namespace SquadroAI
     // مقادیر زیر صرفاً نمونه هستند و باید با قوانین بازی تطبیق داده شوند.
     // این آرایه‌ها قدرت حرکت مهره‌ها را از چپ به راست (یا از بالا به پایین بسته به جهت‌گیری بازیکن) نشان می‌دهند.
     // قدرت حرکت مهره‌ها در مسیر رفت
-    constexpr int PLAYER_1_FWD_POWERS = {1, 3, 1, 2, 1}; // مثال
-    constexpr int PLAYER_2_FWD_POWERS = {1, 2, 1, 3, 1}; // مثال
+    constexpr int PLAYER_1_FWD_POWERS[PIECES_PER_PLAYER] = {1, 3, 2, 3, 1}; // مثال
+    constexpr int PLAYER_2_FWD_POWERS[PIECES_PER_PLAYER] = {3, 1, 2, 1, 3}; // مثال
     // قدرت حرکت مهره‌ها در مسیر برگشت (پس از رسیدن به انتهای تخته)
-    constexpr int PLAYER_1_BCK_POWERS = {3, 1, 2, 1, 3}; // مثال
-    constexpr int PLAYER_2_BCK_POWERS = {2, 1, 3, 1, 2}; // مثال
+    constexpr int PLAYER_1_BCK_POWERS[PIECES_PER_PLAYER] = {3, 1, 2, 3, 1}; // مثال
+    constexpr int PLAYER_2_BCK_POWERS[PIECES_PER_PLAYER] = {1, 3, 2, 3, 1}; // مثال
 
     // امتیازات برای تابع ارزیابی (مقادیر اولیه، نیاز به تنظیم دقیق دارند)
     constexpr int WIN_SCORE = 100000;
