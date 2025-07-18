@@ -11,7 +11,7 @@ namespace SquadroAI
     // شناسه‌های بازیکنان
     enum class PlayerID
     {
-        NONE = 0,
+        NONE,
         PLAYER_1 = 1,
         PLAYER_2 = 2,
         DRAW
@@ -25,7 +25,7 @@ namespace SquadroAI
     constexpr int PLAYER_1_FWD_POWERS[PIECES_PER_PLAYER] = {1, 3, 2, 3, 1}; // مثال
     constexpr int PLAYER_2_FWD_POWERS[PIECES_PER_PLAYER] = {3, 1, 2, 1, 3}; // مثال
     // قدرت حرکت مهره‌ها در مسیر برگشت (پس از رسیدن به انتهای تخته)
-    constexpr int PLAYER_1_BCK_POWERS[PIECES_PER_PLAYER] = {3, 1, 2, 3, 1}; // مثال
+    constexpr int PLAYER_1_BCK_POWERS[PIECES_PER_PLAYER] = {3, 1, 2, 1, 3}; // مثال
     constexpr int PLAYER_2_BCK_POWERS[PIECES_PER_PLAYER] = {1, 3, 2, 3, 1}; // مثال
 
     // امتیازات برای تابع ارزیابی (مقادیر اولیه، نیاز به تنظیم دقیق دارند)

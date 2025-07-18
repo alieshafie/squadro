@@ -9,10 +9,9 @@
 
 namespace SquadroAI
 {
-
     class GameState
     {
-    public:
+    private:
         Board board;
         std::vector<Piece> pieces; // تمام مهره‌های بازی (هر دو بازیکن)
         PlayerID current_player;
@@ -40,6 +39,7 @@ namespace SquadroAI
         PlayerID getWinner() const; // برگرداندن برنده یا PlayerID::DRAW یا PlayerID::NONE
 
         PlayerID getCurrentPlayer() const { return current_player; }
+        void setCurrentPlayer(PlayerID player) { current_player = player; };
         void switchPlayer();
 
         int getCompletedPieceCount(PlayerID player) const;

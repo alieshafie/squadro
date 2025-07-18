@@ -121,7 +121,7 @@ int main(int argc, char *argv[])
 
         // Set initial turn according to Squadro rules (Player 1 usually starts).
         // GameState constructor should set this, but we can ensure it here.
-        current_game_state.current_player = PlayerID::PLAYER_1;
+        current_game_state.setCurrentPlayer(PlayerID::PLAYER_1);
         if (my_player_num_arg == 1)
         {
             std::cout << "I am Player 1. My turn to make the first move." << std::endl;

@@ -31,11 +31,13 @@ namespace SquadroAI
             Piece captured_piece; // اگر مهره‌ای گرفته شده باشد
             bool captured_piece_valid = false;
             PieceStatus original_mover_status;
+            PlayerID original_mover_owner;
             int original_mover_row;
             int original_mover_col;
             // سایر اطلاعات لازم برای undo
         };
-        AppliedMoveInfo applyMove(const Move &move, PlayerID current_player, std::vector<Piece> &pieces);
+        // اگر حرکت معتبر نباشد، std::nullopt برمی‌گرداند
+        std::optional<AppliedMoveInfo> applyMove(const Move &move, PlayerID current_player, std::vector<Piece> &pieces);
 
         // بازگرداندن آخرین حرکت اعمال شده
         void undoMove(const AppliedMoveInfo &move_info, std::vector<Piece> &pieces);
@@ -55,10 +57,10 @@ namespace SquadroAI
 
     private:
         // نمایش تخته: یک آرایه دوبعدی از Cell ها
-        // بازیکن 1 معمولاً از ردیف 0 حرکت می‌کند، بازیکن 2 از ستون 0 (بسته به توافق)
+        // بازیکن 2 معمولاً از ردیف 0 حرکت می‌کند، بازیکن 1 از ستون 0 (بسته به توافق)
         // در اینجا فرض می‌کنیم هر دو از "لبه" خود حرکت می‌کنند.
-        // Player 1 pieces (0-4) start at (0, 1), (0,2), (0,3), (0,4), (0,5) and move towards row 6
-        // Player 2 pieces (5-9) start at (1,0), (2,0), (3,0), (4,0), (5,0) and move towards col 6
+        // Player 1 pieces (0-4) start at (1,0), (2,0), (3,0), (4,0), (5,0) and move towards col 6
+        // Player 2 pieces (5-9) start at (0,1), (0,2), (0,3), (0,4), (0,5) and move towards row 6
         // این باید با قوانین دقیق Squadro تطبیق داده شود.
         std::array<std::array<Cell, NUM_COLS>, NUM_ROWS> grid;
 

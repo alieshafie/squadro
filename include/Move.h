@@ -1,30 +1,37 @@
 #pragma once
 
 #include <string>
+#include <stdexcept>
 
 namespace SquadroAI
 {
 
     struct Move
     {
-        int piece_index; // اندیس مهره (0 تا 4 برای هر بازیکن)
-        // ممکن است اطلاعات بیشتری مانند مختصات شروع و پایان برای سادگی در برخی موارد اضافه شود،
-        // اما معمولاً فقط اندیس مهره کافی است و قوانین بازی بقیه را تعیین می‌کنند.
-        // int from_row, from_col;
-        // int to_row, to_col;
+        int piece_index; //(0-4) نسبی
 
-        Move(int p_index = -1) : piece_index(p_index) {}
-
-        bool operator==(const Move &other) const
+        Move(int piece_index = -1)
         {
-            return piece_index == other.piece_index;
+            if (piece_index < -1 || piece_index > 4)
+            {
+                throw std::invalid_argument("Invalid piece index");
+                this->piece_index = -1;
+            }
+            this->piece_index = piece_index;
         }
+        int getid(PlayerID player) const
+        {
+            int id = piece_index;
+            if (player == PlayerID::PLAYER_2)
+            {
+                id = 5 + piece_index;
+            }
+            return id;
+        }
+        bool operator==(const Move &other) const { return piece_index == other.piece_index; }
 
         // برای استفاده در std::map یا std::set اگر لازم باشد
-        bool operator<(const Move &other) const
-        {
-            return piece_index < other.piece_index;
-        }
+        bool operator<(const Move &other) const { return piece_index < other.piece_index; }
 
         std::string to_string() const
         {
