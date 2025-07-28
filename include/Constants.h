@@ -6,19 +6,12 @@ namespace SquadroAI {
 constexpr int NUM_ROWS = 7;  // تعداد سطرها (با احتساب
                              // خانه‌های شروع و پایان)
 constexpr int NUM_COLS = 7;  // تعداد ستون‌ها
-constexpr int NUM_PIECES = 10;
+constexpr int PIECES_PER_PLAYER = 5;
+constexpr int NUM_PIECES = 2 * PIECES_PER_PLAYER;
 
 // شناسه‌های بازیکنان
 enum class PlayerID { NONE, PLAYER_1 = 1, PLAYER_2 = 2, DRAW };
 
-// قدرت حرکت اولیه مهره‌ها برای هر بازیکن
-// این مقادیر باید بر اساس قوانین دقیق بازی Squadro تنظیم شوند
-// مقادیر زیر صرفاً نمونه هستند و باید با قوانین بازی تطبیق داده شوند.
-// این آرایه‌ها قدرت حرکت مهره‌ها را از چپ
-// به راست (یا از بالا به پایین بسته به
-// جهت‌گیری بازیکن)
-// نشان می‌دهند. قدرت حرکت مهره‌ها در مسیر
-// رفت
 constexpr int FWD_POWERS[NUM_PIECES] = {1, 3, 2, 3, 1, 3, 1, 2, 1, 3};
 constexpr int BCK_POWERS[NUM_PIECES] = {3, 1, 2, 1, 3, 1, 3, 2, 3, 1};
 // امتیازات برای تابع ارزیابی (مقادیر اولیه، نیاز به تنظیم دقیق دارند)

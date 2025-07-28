@@ -1,21 +1,18 @@
 #pragma once
 
+#include <string>
+
 #include "Constants.h"
 
 namespace SquadroAI {
 
-enum class PieceStatus {
-  ON_BOARD_FORWARD,
-  ON_BOARD_BACKWARD,
-  FINISHED,
-  NOT_STARTED
-};
+enum class PieceStatus { ON_BOARD_FORWARD, ON_BOARD_BACKWARD, FINISHED };
 
+// این کلاس اکنون بیشتر شبیه یک struct ساده است، که برای سرعت عالی است.
 class Piece {
  public:
   PlayerID owner;
-  int id;                  // 0-9
-  int player_piece_index;  // 0-4
+  int id;  // شناسه سراسری 0 تا 9
 
   int row;
   int col;
@@ -23,35 +20,31 @@ class Piece {
   int forward_power;
   int backward_power;
 
-  Piece(PlayerID owner = PlayerID::NONE, int id = -1,
-        int player_piece_index = -1, int row = 0, int col = 0)
-      : owner(owner),
-        id(id),
-        player_piece_index(player_piece_index),
-        row(row),
-        col(col),
-        forward_power(forward_power),
-        backward_power(backward_power),
-        status(PieceStatus::NOT_STARTED) {
-    if (owner == PlayerID::PLAYER_1) {
-      forward_power = PLAYER_1_FWD_POWERS[player_piece_index];
-      backward_power = PLAYER_1_BCK_POWERS[player_piece_index];
-    } else if (owner == PlayerID::PLAYER_2) {
-      forward_power = PLAYER_2_FWD_POWERS[player_piece_index];
-      backward_power = PLAYER_2_BCK_POWERS[player_piece_index];
-    }
-  }
+  // سازنده پیش‌فرض برای سادگی
+  Piece()
+      : owner(PlayerID::NONE),
+        id(-1),
+        row(-1),
+        col(-1),
+        status(PieceStatus::ON_BOARD_BACKWARD),
+        forward_power(0),
+        backward_power(0) {}
 
-  int getCurrentMovePower() const {
+  // توابع کمکی سریع
+  inline bool isFinished() const { return status == PieceStatus::FINISHED; }
+
+  inline int getCurrentMovePower() const {
     return (status == PieceStatus::ON_BOARD_FORWARD) ? forward_power
                                                      : backward_power;
-  };
-  bool isFinished() const { return status == PieceStatus::FINISHED; };
+  }
 
+  // این تابع برای دیباگ مفید است و روی عملکرد تأثیر ندارد
   std::string to_string() const {
-    return "Piece(id=" + std::to_string(id) + ", row=" + std::to_string(row) +
-           ", col=" + std::to_string(col) +
-           ", status=" + std::to_string(static_cast<int>(status)) + ")";
+    char buffer[4];  // e.g., "P1>", "p8<"
+    char player_char = (owner == PlayerID::PLAYER_1) ? 'P' : 'p';
+    char dir_char = (status == PieceStatus::ON_BOARD_FORWARD) ? '>' : '<';
+    snprintf(buffer, sizeof(buffer), "%c%d%c", player_char, id % 5, dir_char);
+    return std::string(buffer);
   }
 };
 

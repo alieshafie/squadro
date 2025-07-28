@@ -1,57 +1,52 @@
 #pragma once
 
+#include <memory>  // برای سادگی در پیاده‌سازی اولیه، بعدا می‌توان بهینه کرد
 #include <vector>
-#include <chrono>
-#include "Constants.h"
+
 #include "Board.h"
-#include "Piece.h"
+#include "Constants.h"
 #include "Move.h"
 
-namespace SquadroAI
-{
-    class GameState
-    {
-    private:
-        Board board;
-        std::vector<Piece> pieces; // تمام مهره‌های بازی (هر دو بازیکن)
-        PlayerID current_player;
-        int turn_count;
+namespace SquadroAI {
 
-        // شمارش مهره‌های به خانه رسانده شده توسط هر بازیکن
-        int player1_completed_pieces;
-        int player2_completed_pieces;
+class GameState {
+ public:
+  // سازنده، بازی را در وضعیت اولیه قرار
+  // می‌دهد
+  GameState();
 
-        // تاریخچه حرکات (برای undo و تشخیص تکرار وضعیت اگر لازم باشد)
-        std::vector<Board::AppliedMoveInfo> move_history;
+  // این تابع یک وضعیت جدید بر اساس حرکت داده شده ایجاد
+  // می‌کند
+  // این روش برای الگوریتم‌های جستجو بسیار تمیز و
+  // مناسب است
+  GameState createNextState(const Move& move) const;
 
-        uint64_t zobrist_hash; // برای جدول انتقال
+  // لیستی از تمام حرکات قانونی برای بازیکن فعلی را
+  // برمی‌گرداند
+  std::vector<Move> generateLegalMoves() const;
 
-    public:
-        GameState();
-        void initializeNewGame();
+  // بررسی می‌کند که آیا بازی تمام شده است یا
+  // نه
+  bool isGameOver() const;
 
-        bool applyMove(const Move &move); // اعمال حرکت و به‌روزرسانی وضعیت
-        bool undoLastMove();              // بازگرداندن آخرین حرکت
+  // برنده بازی را برمی‌گرداند (اگر بازی تمام
+  // شده باشد)
+  PlayerID getWinner() const;
 
-        std::vector<Move> getLegalMoves() const;
+  // توابع Getter برای دسترسی به وضعیت داخلی
+  PlayerID getCurrentPlayer() const { return currentPlayer; }
+  const Board& getBoard() const { return board; }
+  int getTurnCount() const { return turnCount; }
 
-        bool isGameOver() const;
-        PlayerID getWinner() const; // برگرداندن برنده یا PlayerID::DRAW یا PlayerID::NONE
+ private:
+  Board board;             // وضعیت فیزیکی تخته (سریع و فشرده)
+  PlayerID currentPlayer;  // بازیکنی که نوبت اوست
+  PlayerID winner;         // برای ذخیره برنده بازی
+  int turnCount;           // تعداد نوبت‌های گذشته
 
-        PlayerID getCurrentPlayer() const { return current_player; }
-        void setCurrentPlayer(PlayerID player) { current_player = player; };
-        void switchPlayer();
+  // تابع کمکی خصوصی برای به‌روزرسانی وضعیت
+  // پایان بازی
+  void updateGameStatus();
+};
 
-        int getCompletedPieceCount(PlayerID player) const;
-
-        uint64_t getZobristHash() const { return zobrist_hash; }
-        void updateZobristHashForMove(const Move &move); // این باید پیچیده‌تر باشد
-        void recomputeZobristHash();                     // برای اطمینان یا مقداردهی اولیه
-
-        // تابع کپی برای ایجاد وضعیت‌های جدید در جستجو
-        GameState createChildState(const Move &move) const;
-
-        void printState() const; // برای دیباگ
-    };
-
-} // namespace SquadroAI
+}  // namespace SquadroAI
