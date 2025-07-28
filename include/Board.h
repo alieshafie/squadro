@@ -9,8 +9,6 @@
 #include "Piece.h"
 
 namespace SquadroAI {
-// بهینه‌سازی ۱: استفاده از مقدار نگهبان
-// (Sentinel Value)
 using Cell = int;
 constexpr int EMPTY_CELL = -1;
 
