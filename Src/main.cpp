@@ -40,7 +40,7 @@ void opponent_move_callback(int opponent_pawn_index)
     cv_opponent_move.notify_one(); // Notify the main game loop thread.
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     std::cout << "Squadro AI Agent (C++) starting..." << std::endl;
 
@@ -51,9 +51,9 @@ int main(int argc, char *argv[])
     if (argc < 7)
     { // argv[0] is the program name, so 6 more arguments are needed.
         std::cerr << "Usage: " << argv[0]
-                  << " <my_player_num (1 or 2)> <gui_ip> "
-                  << "<p1_sends_to_gui_port> <p1_listens_for_reply_port> "
-                  << "<p2_sends_to_gui_port> <p2_listens_for_reply_port>" << std::endl;
+            << " <my_player_num (1 or 2)> <gui_ip> "
+            << "<p1_sends_to_gui_port> <p1_listens_for_reply_port> "
+            << "<p2_sends_to_gui_port> <p2_listens_for_reply_port>" << std::endl;
         std::cerr << "Example: " << argv[0] << " 1 127.0.0.1 8081 9081 8082 9082" << std::endl;
         return 1;
     }
@@ -72,16 +72,16 @@ int main(int argc, char *argv[])
         p2_send_to_gui_port_arg = std::stoi(argv[5]);
         p2_listen_reply_port_arg = std::stoi(argv[6]);
     }
-    catch (const std::invalid_argument &ia)
+    catch (const std::invalid_argument& ia)
     {
         std::cerr << "Error: Invalid argument provided. " << ia.what()
-                  << " Please ensure player number and port numbers are integers." << std::endl;
+            << " Please ensure player number and port numbers are integers." << std::endl;
         return 1;
     }
-    catch (const std::out_of_range &oor)
+    catch (const std::out_of_range& oor)
     {
         std::cerr << "Error: Out of range argument. " << oor.what()
-                  << " A port number might be too large or too small." << std::endl;
+            << " A port number might be too large or too small." << std::endl;
         return 1;
     }
 
@@ -95,7 +95,7 @@ int main(int argc, char *argv[])
     PlayerID opponent_id = (my_player_num_arg == 1) ? PlayerID::PLAYER_2 : PlayerID::PLAYER_1;
 
     std::cout << "Registered as Player " << my_player_num_arg
-              << " (Internal PlayerID: " << static_cast<int>(my_ai_player_id) << ")" << std::endl;
+        << " (Internal PlayerID: " << static_cast<int>(my_ai_player_id) << ")" << std::endl;
     std::cout << "GUI IP: " << gui_ip_arg << std::endl;
 
     // Determine which ports this instance should use based on its player number.
@@ -103,9 +103,9 @@ int main(int argc, char *argv[])
     int my_listen_for_reply_port = (my_player_num_arg == 1) ? p1_listen_reply_port_arg : p2_listen_reply_port_arg;
 
     std::cout << "This agent (Player " << my_player_num_arg << ") will send its moves to GUI on port: "
-              << my_send_to_gui_port << std::endl;
+        << my_send_to_gui_port << std::endl;
     std::cout << "This agent (Player " << my_player_num_arg << ") will listen for opponent's moves from GUI on port: "
-              << my_listen_for_reply_port << std::endl;
+        << my_listen_for_reply_port << std::endl;
 
     try
     {
@@ -114,7 +114,7 @@ int main(int argc, char *argv[])
 
         AIPlayer ai_player(my_ai_player_id); // Default TT size (e.g., 64MB).
         NetworkManager network_manager(gui_ip_arg, my_send_to_gui_port,
-                                       "0.0.0.0", my_listen_for_reply_port); // Listen on all available interfaces.
+            "0.0.0.0", my_listen_for_reply_port); // Listen on all available interfaces.
 
         network_manager.startListeningForOpponentMoves(opponent_move_callback);
         std::cout << "NetworkManager started. Listening for opponent moves on a separate thread..." << std::endl;
@@ -152,7 +152,7 @@ int main(int argc, char *argv[])
                 if (best_move.piece_index != NULL_MOVE.piece_index)
                 {
                     std::cout << "AI chose to move its pawn with player-relative index: "
-                              << best_move.piece_index << ". (" << best_move.to_string() << ")" << std::endl;
+                        << best_move.piece_index << ". (" << best_move.to_string() << ")" << std::endl;
 
                     // The piece_index from AIPlayer should be the 0-4 index for the current player.
                     // GUI also expects this 0-4 index.
@@ -163,8 +163,8 @@ int main(int argc, char *argv[])
                         if (!current_game_state.applyMove(best_move))
                         {
                             std::cerr << "CRITICAL ERROR: AI-generated move (" << best_move.to_string()
-                                      << ") was sent to GUI but deemed invalid by local GameState.applyMove. "
-                                      << "This indicates a bug in move generation or validation logic. State desync likely." << std::endl;
+                                << ") was sent to GUI but deemed invalid by local GameState.applyMove. "
+                                << "This indicates a bug in move generation or validation logic. State desync likely." << std::endl;
                             network_manager.stopListening();
                             return 1; // Critical error, exit.
                         }
@@ -180,8 +180,8 @@ int main(int argc, char *argv[])
                 else
                 {
                     std::cerr << "CRITICAL ERROR: AIPlayer::findBestMove returned NULL_MOVE. "
-                              << "AI could not find any valid move. This implies a bug, an unhandled stalemate, or a lost game state where no moves are possible. Terminating."
-                              << std::endl;
+                        << "AI could not find any valid move. This implies a bug, an unhandled stalemate, or a lost game state where no moves are possible. Terminating."
+                        << std::endl;
                     network_manager.stopListening();
                     return 1; // Critical error, exit.
                 }
@@ -189,34 +189,34 @@ int main(int argc, char *argv[])
             else
             { // Opponent's turn
                 std::cout << "Opponent's turn (Player "
-                          << (current_game_state.getCurrentPlayer() == PlayerID::PLAYER_1 ? "1" : "2")
-                          << "). Waiting for move from GUI..." << std::endl;
+                    << (current_game_state.getCurrentPlayer() == PlayerID::PLAYER_1 ? "1" : "2")
+                    << "). Waiting for move from GUI..." << std::endl;
 
                 std::unique_lock<std::mutex> lock(network_mutex);
                 // Wait for the network callback to signal an opponent's move.
                 // Add a generous timeout in case something goes wrong with GUI or network.
                 if (!cv_opponent_move.wait_for(lock, std::chrono::seconds(65), []
-                                               { return g_opponent_has_moved; }))
+                    { return g_opponent_has_moved; }))
                 {
                     std::cerr << "TIMEOUT: No move received from opponent within the timeout period. "
-                              << "Assuming opponent disconnected or GUI issue. Terminating." << std::endl;
+                        << "Assuming opponent disconnected or GUI issue. Terminating." << std::endl;
                     // In a real competition, this might be handled differently (e.g., claim win by timeout).
                     network_manager.stopListening();
                     return 1; // Exit.
                 }
 
                 // g_opponent_has_moved is now true.
-                Move opponent_move = {g_last_opponent_pawn_move_idx}; // piece_index relative to the opponent.
+                Move opponent_move = { g_last_opponent_pawn_move_idx }; // piece_index relative to the opponent.
                 std::cout << "Opponent's move received from GUI: Pawn with player-relative index "
-                          << opponent_move.piece_index << ". (" << opponent_move.to_string() << ")" << std::endl;
+                    << opponent_move.piece_index << ". (" << opponent_move.to_string() << ")" << std::endl;
 
                 // Apply opponent's move to our local game state.
                 // GameState::applyMove should correctly handle which player's piece_index this is.
                 if (!current_game_state.applyMove(opponent_move))
                 {
                     std::cerr << "CRITICAL ERROR: Opponent's move (" << opponent_move.to_string()
-                              << "), received from GUI, is considered invalid by local GameState.applyMove. "
-                              << "State desynchronization with GUI is highly likely. Terminating." << std::endl;
+                        << "), received from GUI, is considered invalid by local GameState.applyMove. "
+                        << "State desynchronization with GUI is highly likely. Terminating." << std::endl;
                     // This could mean GUI sent a bad move, or our state/validation logic is flawed.
                     network_manager.stopListening();
                     return 1; // Critical error, exit.
@@ -238,8 +238,8 @@ int main(int argc, char *argv[])
         else if (winner == opponent_id)
         {
             std::cout << "DEFEAT. Opponent (Player "
-                      << (opponent_id == PlayerID::PLAYER_1 ? "1" : "2")
-                      << ") won." << std::endl;
+                << (opponent_id == PlayerID::PLAYER_1 ? "1" : "2")
+                << ") won." << std::endl;
         }
         else if (winner == PlayerID::DRAW)
         {
@@ -248,12 +248,12 @@ int main(int argc, char *argv[])
         else
         { // PlayerID::NONE
             std::cout << "Game ended, but the winner is PlayerID::NONE. "
-                      << "(This might occur if the game exited prematurely or if the win condition wasn't met by either player, e.g., a loop limit)." << std::endl;
+                << "(This might occur if the game exited prematurely or if the win condition wasn't met by either player, e.g., a loop limit)." << std::endl;
         }
 
         network_manager.stopListening(); // Ensure network thread is properly shut down.
     }
-    catch (const std::exception &e)
+    catch (const std::exception& e)
     {
         std::cerr << "FATAL Unhandled std::exception in main: " << e.what() << std::endl;
         // Consider trying to stop network manager if it was initialized.

@@ -30,7 +30,7 @@ namespace SquadroAI
         GameState();
         void initializeNewGame();
 
-        bool applyMove(const Move &move); // اعمال حرکت و به‌روزرسانی وضعیت
+        bool applyMove(const Move& move); // اعمال حرکت و به‌روزرسانی وضعیت
         bool undoLastMove();              // بازگرداندن آخرین حرکت
 
         std::vector<Move> getLegalMoves() const;
@@ -45,11 +45,11 @@ namespace SquadroAI
         int getCompletedPieceCount(PlayerID player) const;
 
         uint64_t getZobristHash() const { return zobrist_hash; }
-        void updateZobristHashForMove(const Move &move); // این باید پیچیده‌تر باشد
+        void updateZobristHashForMove(const Move& move); // این باید پیچیده‌تر باشد
         void recomputeZobristHash();                     // برای اطمینان یا مقداردهی اولیه
 
         // تابع کپی برای ایجاد وضعیت‌های جدید در جستجو
-        GameState createChildState(const Move &move) const;
+        GameState createChildState(const Move& move) const;
 
         void printState() const; // برای دیباگ
     };
