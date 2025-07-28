@@ -1,34 +1,36 @@
 #include "Board.h"
 
-#include <algorithm>  // برای std::fill
+#include <algorithm>
 #include <iostream>
 
 namespace SquadroAI {
-Board::Board() {
-  // مقداردهی اولیه کل تخته با مقدار نگهبان به صورت بهینه
-  grid.fill(EMPTY_CELL);
-  initializeBoard();
-}
+
+Board::Board() { initializeBoard(); }
 
 void Board::initializeBoard() {
-  grid.fill(EMPTY_CELL);  // اطمینان از خالی بودن تخته قبل از چیدن
-                          // مهره‌ها
+  grid.fill(EMPTY_CELL);
 
-  // قرار دادن مهره‌های بازیکن 1
-  for (int i = 0; i < 5; ++i) {
-    get_cell_ref(i + 1, 0) = i;  // مهره‌های بازیکن 1 (ID 0-4)
-  }
+  for (int id = 0; id < NUM_PIECES; ++id) {
+    pieces[id].id = id;
+    pieces[id].owner = (id < 5) ? PlayerID::PLAYER_1 : PlayerID::PLAYER_2;
+    pieces[id].status = PieceStatus::ON_BOARD_FORWARD;
+    pieces[id].forward_power = FWD_POWERS[id];
+    pieces[id].backward_power = BCK_POWERS[id];
 
-  // قرار دادن مهره‌های بازیکن 2
-  for (int j = 0; j < 5; ++j) {
-    get_cell_ref(0, j + 1) =
-        j + 5;  // مهره‌های بازیکن 2 (ID 5-9)
+    if (pieces[id].owner == PlayerID::PLAYER_1) {
+      pieces[id].row = id + 1;
+      pieces[id].col = 0;
+    } else {
+      pieces[id].row = 0;
+      pieces[id].col = (id - 5) + 1;
+    }
+    get_cell_ref(pieces[id].row, pieces[id].col) = id;
   }
 }
 
 std::optional<Board::AppliedMoveInfo> Board::applyMove(
-    const Move &move, PlayerID current_player, std::vector<Piece> &pieces) {
-  if (!isMoveValid(move, current_player, pieces)) {
+    const Move &move, PlayerID current_player) {
+  if (!isMoveValid(move, current_player)) {
     return std::nullopt;
   }
 
@@ -36,15 +38,11 @@ std::optional<Board::AppliedMoveInfo> Board::applyMove(
   const int id = move.getid(current_player);
   Piece &mover = pieces[id];
 
-  // ذخیره وضعیت اولیه برای undo
+  // ذخیره وضعیت برای undo
   move_info.move = move;
   move_info.original_mover_status = mover.status;
-  move_info.original_mover_owner = current_player;
-  move_info.original_mover_row = mover.row;
-  move_info.original_mover_col = mover.col;
 
-  get_cell_ref(mover.row, mover.col) =
-      EMPTY_CELL;  // پاک کردن مهره از مکان فعلی
+  get_cell_ref(mover.row, mover.col) = EMPTY_CELL;
 
   const bool is_forward = (mover.status == PieceStatus::ON_BOARD_FORWARD);
   const int power = is_forward ? mover.forward_power : mover.backward_power;
@@ -53,51 +51,48 @@ std::optional<Board::AppliedMoveInfo> Board::applyMove(
   const int dc =
       (current_player == PlayerID::PLAYER_1) ? (is_forward ? 1 : -1) : 0;
 
+  int current_r = mover.row;
+  int current_c = mover.col;
+
   for (int i = 0; i < power; ++i) {
-    int next_row = mover.row + dr;
-    int next_col = mover.col + dc;
+    int next_r = current_r + dr;
+    int next_c = current_c + dc;
 
-    bool reached_end =
-        (current_player == PlayerID::PLAYER_1)
-            ? (is_forward ? (next_col == NUM_COLS - 1) : (next_col == 0))
-            : (is_forward ? (next_row == NUM_ROWS - 1) : (next_row == 0));
-
-    if (reached_end) {
-      mover.row = next_row;
-      mover.col = next_col;
-      mover.status =
-          is_forward ? PieceStatus::ON_BOARD_BACKWARD : PieceStatus::FINISHED;
-      break;
-    }
-
-    if (get_cell_ref(next_row, next_col) != EMPTY_CELL) {
-      const int opponent_id = get_cell_ref(next_row, next_col);
-      Piece &opponent_piece = pieces[opponent_id];
-
-      move_info.captured_piece = opponent_piece;
+    if (get_cell_ref(next_r, next_c) != EMPTY_CELL) {
+      const int opponent_id = get_cell_ref(next_r, next_c);
+      move_info.captured_piece =
+          pieces[opponent_id];  // کپی از وضعیت فعلی مهره حریف
       move_info.captured_piece_valid = true;
 
+      Piece &opponent_piece = pieces[opponent_id];
+      opponent_piece.status =
+          PieceStatus::ON_BOARD_FORWARD;  // همیشه به وضعیت اولیه
+                                          // برمی‌گردد
       if (opponent_piece.owner == PlayerID::PLAYER_1) {
-        opponent_piece.row =
-            opponent_piece.status == PieceStatus::ON_BOARD_FORWARD
-                ? opponent_piece.row
-                : (NUM_ROWS - 1);
+        opponent_piece.row = opponent_piece.id + 1;
         opponent_piece.col = 0;
       } else {
-        opponent_piece.col =
-            opponent_piece.status == PieceStatus::ON_BOARD_FORWARD
-                ? opponent_piece.col
-                : (NUM_COLS - 1);
         opponent_piece.row = 0;
+        opponent_piece.col = (opponent_piece.id - 5) + 1;
       }
-
-      mover.row = next_row + dr;
-      mover.col = next_col + dc;
-      break;
+      get_cell_ref(opponent_piece.row, opponent_piece.col) = opponent_id;
     }
 
-    mover.row = next_row;
-    mover.col = next_col;
+    current_r = next_r;
+    current_c = next_c;
+  }
+
+  mover.row = current_r;
+  mover.col = current_c;
+
+  bool reached_end =
+      (current_player == PlayerID::PLAYER_1)
+          ? (is_forward ? (mover.col == NUM_COLS - 1) : (mover.col == 0))
+          : (is_forward ? (mover.row == NUM_ROWS - 1) : (mover.row == 0));
+
+  if (reached_end) {
+    mover.status =
+        is_forward ? PieceStatus::ON_BOARD_BACKWARD : PieceStatus::FINISHED;
   }
 
   if (mover.status != PieceStatus::FINISHED) {
@@ -108,88 +103,89 @@ std::optional<Board::AppliedMoveInfo> Board::applyMove(
 }
 
 void Board::undoMove(const AppliedMoveInfo &move_info,
-                     std::vector<Piece> &pieces) {
-  const Move &move = move_info.move;
-  const int id = move.getid(move_info.original_mover_owner);
+                     PlayerID original_player) {
+  const int id = move_info.move.getid(original_player);
   Piece &mover = pieces[id];
 
+  // 1. بازگرداندن مهره‌ای که حرکت کرده
+  // اگر مهره در حرکت قبلی تمام نشده بود،
+  // خانه‌اش را خالی کن
   if (mover.status != PieceStatus::FINISHED) {
     get_cell_ref(mover.row, mover.col) = EMPTY_CELL;
   }
 
   mover.status = move_info.original_mover_status;
-  mover.row = move_info.original_mover_row;
-  mover.col = move_info.original_mover_col;
+  // مکان اولیه مهره از روی ID و وضعیتش قابل محاسبه است
+  if (mover.owner == PlayerID::PLAYER_1) {
+    mover.col =
+        (mover.status == PieceStatus::ON_BOARD_FORWARD) ? 0 : NUM_COLS - 1;
+    mover.row = id + 1;
+  } else {
+    mover.row =
+        (mover.status == PieceStatus::ON_BOARD_FORWARD) ? 0 : NUM_ROWS - 1;
+    mover.col = (id - 5) + 1;
+  }
+
   get_cell_ref(mover.row, mover.col) = id;
 
+  // 2. بازگرداندن مهره گرفته شده (اگر وجود داشته باشد)
   if (move_info.captured_piece_valid) {
     const Piece &captured_info = move_info.captured_piece;
-    Piece &captured_piece = pieces[captured_info.id];
-    captured_piece = captured_info;
-    get_cell_ref(captured_piece.row, captured_piece.col) = captured_piece.id;
+    // خانه‌ای که مهره گرفته شده الان به آن
+    // برگشته را خالی کن
+    get_cell_ref(pieces[captured_info.id].row, pieces[captured_info.id].col) =
+        EMPTY_CELL;
+    // وضعیت کامل مهره را بازگردان
+    pieces[captured_info.id] = captured_info;
+    // آن را در جای اصلی‌اش روی تخته قرار بده
+    get_cell_ref(captured_info.row, captured_info.col) = captured_info.id;
   }
 }
 
-std::vector<Move> Board::generateLegalMoves(
-    PlayerID player, const std::vector<Piece> &pieces) const {
+std::vector<Move> Board::generateLegalMoves(PlayerID player) const {
   std::vector<Move> legal_moves;
   legal_moves.reserve(5);
 
   int start_id = (player == PlayerID::PLAYER_1) ? 0 : 5;
   for (int i = 0; i < 5; ++i) {
-    Move move(i);
-    if (isMoveValid(move, player, pieces)) {
-      legal_moves.push_back(move);
+    if (!pieces[start_id + i].isFinished()) {
+      legal_moves.emplace_back(i);
     }
   }
   return legal_moves;
 }
 
-bool Board::isMoveValid(const Move &move, PlayerID current_player,
-                        const std::vector<Piece> &pieces) const {
+bool Board::isMoveValid(const Move &move, PlayerID player) const {
   if (move == NULL_MOVE) return false;
 
-  const int piece_id = move.getid(current_player);
-  const Piece &mover = pieces[piece_id];
+  const int piece_id = move.getid(player);
+  const Piece &piece = pieces[piece_id];
 
-  if (mover.isFinished() || mover.owner != current_player) return false;
-
-  // بهینه‌سازی: چک کردن سریع و امن با مقدار نگهبان.
-  // این دستور بسیار
-  // سریع‌تر از نسخه std::optional است و در مقابل کرش
-  // کردن امن است.
-  if (get_cell_ref(mover.row, mover.col) != mover.id) return false;
-
-  return true;
+  return !piece.isFinished() && piece.owner == player;
 }
 
-void Board::printBoard(const std::vector<Piece> &pieces) const {
+void Board::printBoard() const {
+  // ... (این بخش بدون تغییر باقی می‌ماند، فقط
+  // باید از pieces داخلی استفاده کند)
   for (int i = NUM_ROWS - 1; i >= 0; --i) {
     for (int j = 0; j < NUM_COLS; ++j) {
       std::cout << " | ";
       const int piece_id = get_cell_ref(i, j);
       if (piece_id != EMPTY_CELL) {
-        const Piece &piece = pieces[piece_id];
-        std::cout << piece.to_string() << " | ";
+        std::cout << pieces[piece_id].to_string();
       } else {
-        std::cout << "EMPTY | ";
+        std::cout << "    ";
       }
     }
-    std::cout << std::endl;
+    std::cout << " |" << std::endl;
   }
 }
 
+const Piece &Board::getPiece(int piece_id) const { return pieces[piece_id]; }
+
 Cell Board::getCell(int row, int col) const {
   if (row < 0 || row >= NUM_ROWS || col < 0 || col >= NUM_COLS)
-    return EMPTY_CELL;  // بازگرداندن مقدار امن
-
+    return EMPTY_CELL;
   return get_cell_ref(row, col);
-}
-
-void Board::setCell(int row, int col, Cell piece_id) {
-  if (row < 0 || row >= NUM_ROWS || col < 0 || col >= NUM_COLS)
-    return;  // انجام ندادن هیچ کاری در صورت خارج از محدوده بودن
-
-  get_cell_ref(row, col) = piece_id;
 }
 }  // namespace SquadroAI
