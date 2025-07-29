@@ -1,51 +1,51 @@
 #pragma once
 
-#include <vector>
-#include <optional>
 #include <cstdint>
-#include "Constants.h"
+#include <vector>
+
 #include "Move.h"
 
-namespace SquadroAI
-{
+namespace SquadroAI {
 
-    enum class TTEntryType
-    {
-        EXACT,       // امتیاز دقیق است
-        LOWER_BOUND, // امتیاز حداقل مقدار ذخیره شده است (fail high)
-        UPPER_BOUND  // امتیاز حداکثر مقدار ذخیره شده است (fail low)
-    };
+// نوع اطلاعات ذخیره شده در جدول:
+// EXACT: امتیاز دقیقا برابر با value است.
+// LOWER_BOUND: امتیاز حداقل برابر با value است (یک حرکت باعث هرس بتا شد).
+// UPPER_BOUND: امتیاز حداکثر برابر با value است (همه حرکات بررسی شدند و از آلفا
+// بهتر نشدند).
+enum class EntryType { EMPTY, EXACT, LOWER_BOUND, UPPER_BOUND };
 
-    struct TTEntry
-    {
-        uint64_t zobrist_key_check; // برای بررسی برخورد هش
-        Move best_move;
-        int score;
-        int depth;
-        TTEntryType type;
-        bool is_valid = false;
+struct TTEntry {
+  uint64_t zobrist_key = 0;  // برای تشخیص برخورد (collision)
+  int depth = -1;
+  int score = 0;
+  EntryType type = EntryType::EMPTY;
+  Move best_move;  // بهترین حرکتی که از این وضعیت پیدا شده
+};
 
-        TTEntry() : zobrist_key_check(0), best_move(NULL_MOVE), score(0), depth(0), type(TTEntryType::EXACT) {}
-    };
+class TranspositionTable {
+ public:
+  // سازنده: اندازه جدول را بر حسب مگابایت
+  // می‌گیرد
+  explicit TranspositionTable(size_t size_mb);
 
-    class TranspositionTable
-    {
-    public:
-        explicit TranspositionTable(size_t size_mb); // اندازه جدول به مگابایت
+  // ذخیره یک ورودی جدید در جدول
+  void store(uint64_t key, int depth, int score, EntryType type,
+             const Move& best_move);
 
-        // ذخیره یک ورودی در جدول
-        void store(uint64_t zobrist_key, int depth, int score, TTEntryType type, const Move &best_move);
+  // جستجو برای یک ورودی در جدول. اگر پیدا شد true برمی‌گرداند و مقادیر را پر
+  // می‌کند
+  bool probe(uint64_t key, int depth, int& score, Move& best_move);
 
-        // جستجو برای یک ورودی در جدول
-        std::optional<TTEntry> probe(uint64_t zobrist_key) const;
+  // پاک کردن جدول (مثلا برای شروع یک جستجوی جدید از ریشه)
+  void clear();
 
-        void clear(); // پاک کردن جدول
+  // تعداد برخوردها و بازدیدها برای آمار
+  long long hits = 0;
+  long long probes = 0;
 
-    private:
-        std::vector<TTEntry> table;
-        size_t num_entries;
+ private:
+  std::vector<TTEntry> table;
+  size_t table_size;
+};
 
-        size_t getIndex(uint64_t zobrist_key) const;
-    };
-
-} // namespace SquadroAI
+}  // namespace SquadroAI
