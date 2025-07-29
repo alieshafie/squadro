@@ -4,17 +4,9 @@
 #include <functional>
 #include <thread>
 #include <memory> // برای std::unique_ptr
+#include <httplib.h>
 #include "Constants.h"
 #include "Move.h" // اگر لازم باشد اطلاعات بیشتری از Move ارسال شود
-
-// Forward declaration برای httplib برای کاهش وابستگی در هدر
-namespace httplib
-{
-    class Client;
-    class Server;
-    struct Request;
-    struct Response;
-}
 
 namespace SquadroAI
 {
@@ -22,8 +14,8 @@ namespace SquadroAI
     class NetworkManager
     {
     public:
-        NetworkManager(const std::string &gui_ip, int my_player_gui_port,
-                       const std::string &my_listen_ip, int my_listen_reply_port);
+        NetworkManager(const std::string& gui_ip, int my_player_gui_port,
+            const std::string& my_listen_ip, int my_listen_reply_port);
         ~NetworkManager();
 
         // برای ارسال حرکت به GUI
@@ -50,8 +42,8 @@ namespace SquadroAI
         bool m_is_listening = false;
 
         // توابع داخلی برای پردازش درخواست‌ها
-        void handleGuiPost(const httplib::Request &req, httplib::Response &res,
-                           std::function<void(int)> on_opponent_move_received_callback);
+        void handleGuiPost(const httplib::Request& req, httplib::Response& res,
+            std::function<void(int)> on_opponent_move_received_callback);
     };
 
 } // namespace SquadroAI
