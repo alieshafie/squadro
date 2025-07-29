@@ -4,9 +4,17 @@
 #include <functional>
 #include <thread>
 #include <memory> // برای std::unique_ptr
-#include <httplib.h>
 #include "Constants.h"
 #include "Move.h" // اگر لازم باشد اطلاعات بیشتری از Move ارسال شود
+
+// Forward declaration برای httplib برای کاهش وابستگی در هدر
+namespace httplib
+{
+    class Client;
+    class Server;
+    struct Request;
+    struct Response;
+}
 
 namespace SquadroAI
 {
