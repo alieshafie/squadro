@@ -11,34 +11,34 @@ include_directories(include)
 # استفاده از FetchContent برای دانلود و مدیریت کتابخانه‌های ثالث
 include(FetchContent)
 
-# --- cpp-httplib ---
-set(CPPHTTPLIB_OPENSSL_SUPPORT OFF CACHE BOOL "Disable SSL for cpp-httplib if not needed")
-FetchContent_Declare(
-    cpp-httplib-fetch # یک نام منحصر به فرد برای این FetchContent_Declare
-    GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
-    GIT_TAG v0.15.3 # یا آخرین نسخه پایدار
-)
-FetchContent_GetProperties(cpp-httplib-fetch)
-if(NOT cpp-httplib-fetch_POPULATED) # چک کنید که آیا قبلاً دانلود شده یا نه
-    FetchContent_Populate(cpp-httplib-fetch)
-    # cpp-httplib یک کتابخانه header-only است، بنابراین فقط نیاز به افزودن مسیر include آن داریم
-    include_directories(${cpp-httplib-fetch_SOURCE_DIR})
-    message(STATUS "cpp-httplib source dir: ${cpp-httplib-fetch_SOURCE_DIR}")
-endif()
+# # --- cpp-httplib ---
+# set(CPPHTTPLIB_OPENSSL_SUPPORT OFF CACHE BOOL "Disable SSL for cpp-httplib if not needed")
+# FetchContent_Declare(
+#     cpp-httplib-fetch # یک نام منحصر به فرد برای این FetchContent_Declare
+#     GIT_REPOSITORY https://github.com/yhirose/cpp-httplib.git
+#     GIT_TAG v0.15.3 # یا آخرین نسخه پایدار
+# )
+# FetchContent_GetProperties(cpp-httplib-fetch)
+# if(NOT cpp-httplib-fetch_POPULATED) # چک کنید که آیا قبلاً دانلود شده یا نه
+#     FetchContent_Populate(cpp-httplib-fetch)
+#     # cpp-httplib یک کتابخانه header-only است، بنابراین فقط نیاز به افزودن مسیر include آن داریم
+#     include_directories(${cpp-httplib-fetch_SOURCE_DIR})
+#     message(STATUS "cpp-httplib source dir: ${cpp-httplib-fetch_SOURCE_DIR}")
+# endif()
 
-# --- nlohmann-json ---
-FetchContent_Declare(
-    nlohmann_json-fetch # یک نام منحصر به فرد
-    GIT_REPOSITORY https://github.com/nlohmann/json.git
-    GIT_TAG v3.11.3 # یا آخرین نسخه پایدار
-)
-FetchContent_GetProperties(nlohmann_json-fetch)
-if(NOT nlohmann_json-fetch_POPULATED)
-    FetchContent_Populate(nlohmann_json-fetch)
-    # nlohmann/json هم header-only است و معمولاً در یک زیرپوشه 'include' قرار دارد
-    include_directories(${nlohmann_json-fetch_SOURCE_DIR}/include)
-    message(STATUS "nlohmann_json source dir: ${nlohmann_json-fetch_SOURCE_DIR}/include")
-endif()
+# # --- nlohmann-json ---
+# FetchContent_Declare(
+#     nlohmann_json-fetch # یک نام منحصر به فرد
+#     GIT_REPOSITORY https://github.com/nlohmann/json.git
+#     GIT_TAG v3.11.3 # یا آخرین نسخه پایدار
+# )
+# FetchContent_GetProperties(nlohmann_json-fetch)
+# if(NOT nlohmann_json-fetch_POPULATED)
+#     FetchContent_Populate(nlohmann_json-fetch)
+#     # nlohmann/json هم header-only است و معمولاً در یک زیرپوشه 'include' قرار دارد
+#     include_directories(${nlohmann_json-fetch_SOURCE_DIR}/include)
+#     message(STATUS "nlohmann_json source dir: ${nlohmann_json-fetch_SOURCE_DIR}/include")
+# endif()
 
 
 # تعریف کتابخانه برای منطق بازی و هوش مصنوعی
@@ -49,7 +49,6 @@ add_library(squadro_ai_lib STATIC
     src/GameStateHasher.cpp # اگر پیاده‌سازی دارید
     src/Heuristics.cpp
     src/NetworkManager.cpp
-    src/Piece.cpp
     src/TranspositionTable.cpp # اگر پیاده‌سازی دارید
 )
 
