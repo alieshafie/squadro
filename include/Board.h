@@ -56,10 +56,11 @@ class Board {
   std::array<Cell, NUM_ROWS * NUM_COLS> grid;
 
   // **بهینه‌سازی کلیدی شماره ۲: Single Source of Truth**
-  // تمام مهره‌ها به صورت یک آرایه با اندازه ثابت درون خود
-  // کلاس
-  // Board ذخیره می‌شوند. `grid` و `pieces` کنار هم در حافظه
-  // قرار می‌گیرند و سرعت دسترسی به اوج می‌رسد.
+  // تمام مهره‌ها به صورت یک آرایه با اندازه ثابت درون
+  // خود کلاس
+  // Board ذخیره می‌شوند. `grid` و `pieces` کنار هم در
+  // حافظه قرار می‌گیرند و سرعت دسترسی به اوج
+  // می‌رسد.
   std::array<Piece, NUM_PIECES> pieces;
 
   // توابع کمکی inline برای دسترسی سریع به
@@ -67,6 +68,11 @@ class Board {
   inline Cell& cell_ref(int r, int c) { return grid[r * NUM_COLS + c]; }
   inline const Cell& cell_ref(int r, int c) const {
     return grid[r * NUM_COLS + c];
+  }
+
+  // Helper function to validate board positions
+  inline bool isPositionValid(int row, int col) const {
+    return row >= 0 && row < NUM_ROWS && col >= 0 && col < NUM_COLS;
   }
 };
 

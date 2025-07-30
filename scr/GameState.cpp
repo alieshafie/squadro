@@ -1,5 +1,7 @@
 #include "GameState.h"
 
+#include <algorithm>
+#include <iostream>
 #include <stdexcept>
 
 namespace SquadroAI {
@@ -12,18 +14,35 @@ GameState::GameState()
       turnCount(0) {}
 
 GameState GameState::createNextState(const Move& move) const {
-  // 1. یک کپی کامل از وضعیت فعلی ایجاد کن (این عمل به لطف بهینه‌سازی
-  // Board سریع است)
-  GameState nextState = *this;
+  // First check the move against generateLegalMoves
+  auto legal_moves = generateLegalMoves();
+  if (std::find(legal_moves.begin(), legal_moves.end(), move) == legal_moves.end()) {
+    std::cerr << "Move validation failed: move " << move.piece_index << " not in legal moves list.\n";
+    std::cerr << "Legal moves: ";
+    for (const auto& m : legal_moves) {
+      std::cerr << m.piece_index << " ";
+    }
+    std::cerr << "\n";
+    throw std::logic_error("Attempted to create next state with illegal move");
+  }
 
-  // 2. حرکت را روی تخته‌ی کپی شده اعمال کن
-  // تابع applyMove در Board اطلاعاتی برای undo برمی‌گرداند که اینجا به
-  // آن نیاز نداریم چون ما با یک کپی کار
-  // می‌کنیم.
+  // Check that the board considers the move valid
+  if (!board.isMoveValid(move, currentPlayer)) {
+    std::cerr << "Move validation failed: Board::isMoveValid returned false\n";
+    throw std::logic_error("Board rejected move that was in legal moves list");
+  }
+
+  // Create next state
+  GameState nextState = *this;
   auto move_info = nextState.board.applyMove(move, this->currentPlayer);
+  
   if (!move_info.has_value()) {
-    // این اتفاق نباید بیفتد اگر فقط حرکات قانونی ارسال شوند
-    throw std::logic_error("Attempted to apply an invalid move.");
+    // Print board state at the time of failure
+    std::cerr << "Move application failed. Current board state:\n";
+    board.printBoard();
+    std::cerr << "Move details: Player " << (currentPlayer == PlayerID::PLAYER_1 ? "1" : "2") 
+              << ", Piece " << move.piece_index << "\n";
+    throw std::logic_error("Internal error: move validation inconsistency");
   }
 
   // 3. نوبت را به بازیکن بعدی بده
@@ -69,16 +88,18 @@ void GameState::updateGameStatus() {
     }
   }
 
-  // طبق قوانین، بازیکنی که ۴ مهره‌اش را به خط پایان برساند
-  // برنده است.
-  if (p1_finished_count >= 4) {
+  // Handle win conditions carefully, checking both players
+  // to handle potential race conditions
+  if (p1_finished_count >= 4 && p2_finished_count >= 4) {
+    // If somehow both players finish on the same move,
+    // player 1 wins (since they went first)
+    winner = PlayerID::PLAYER_1;
+  } else if (p1_finished_count >= 4) {
     winner = PlayerID::PLAYER_1;
   } else if (p2_finished_count >= 4) {
     winner = PlayerID::PLAYER_2;
   }
-  // در این بازی حالت تساوی به طور طبیعی رخ نمی‌دهد مگر با قانون خاص
-  // (مثلا تعداد حرکات) که فعلا آن را نادیده
-  // می‌گیریم.
+  // Draw is not possible in normal play unless forced by move limit
 }
 
 }  // namespace SquadroAI

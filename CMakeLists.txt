@@ -54,9 +54,11 @@ add_library(squadro_ai_lib STATIC
 
 # تعریف فایل اجرایی اصلی
 add_executable(SquadroAI_App src/main.cpp)
+add_executable(SquadroAI_Test src/test_ai.cpp)
 
-# لینک کردن کتابخانه به فایل اجرایی
+# لینک کردن کتابخانه به فایل‌های اجرایی
 target_link_libraries(SquadroAI_App PRIVATE squadro_ai_lib)
+target_link_libraries(SquadroAI_Test PRIVATE squadro_ai_lib)
 
 # اطمینان از اینکه هدرهای عمومی کتابخانه squadro_ai_lib برای SquadroAI_App قابل دسترس هستند
 target_include_directories(squadro_ai_lib PUBLIC include)

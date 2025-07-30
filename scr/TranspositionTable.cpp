@@ -32,7 +32,7 @@ void TranspositionTable::store(uint64_t key, int depth, int score,
 }
 
 bool TranspositionTable::probe(uint64_t key, int depth, int& score,
-                               Move& best_move) {
+                               Move& best_move) const {
   probes++;
   size_t index = key % table_size;
   const TTEntry& entry = table[index];
@@ -40,18 +40,14 @@ bool TranspositionTable::probe(uint64_t key, int depth, int& score,
   // ۱. آیا کلید Zobrist مطابقت دارد؟ (برای جلوگیری از collision)
   // ۲. آیا عمق ذخیره شده برای نیاز فعلی ما کافی است؟
   if (entry.zobrist_key == key && entry.depth >= depth) {
-    // اگر نوع ورودی با نیاز ما سازگار باشد، از آن استفاده
-    // می‌کنیم.
-    // این منطق در خود الگوریتم آلفا-بتا
-    // پیاده‌سازی
-    // می‌شود. در اینجا فقط وجود داده معتبر را
-    // برمی‌گردانیم.
     score = entry.score;
     best_move = entry.best_move;
     hits++;
     return true;
   }
-
+  
+  // Return move for move ordering even if score can't be used
+  best_move = entry.best_move;
   return false;
 }
 

@@ -32,16 +32,16 @@ class TranspositionTable {
   void store(uint64_t key, int depth, int score, EntryType type,
              const Move& best_move);
 
-  // جستجو برای یک ورودی در جدول. اگر پیدا شد true برمی‌گرداند و مقادیر را پر
-  // می‌کند
-  bool probe(uint64_t key, int depth, int& score, Move& best_move);
+  // جستجو برای یک ورودی در جدول. اگر پیدا شد true برمی‌گرداند و مقادیر را
+  // پر می‌کند
+  bool probe(uint64_t key, int depth, int& score, Move& best_move) const;
 
   // پاک کردن جدول (مثلا برای شروع یک جستجوی جدید از ریشه)
   void clear();
 
   // تعداد برخوردها و بازدیدها برای آمار
-  long long hits = 0;
-  long long probes = 0;
+  mutable long long hits = 0;
+  mutable long long probes = 0;
 
  private:
   std::vector<TTEntry> table;

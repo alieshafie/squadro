@@ -1,10 +1,8 @@
 #pragma once
 
-#include <chrono>
+#include <chrono>  // برای مدیریت زمان
 
-#include "Constants.h"
 #include "GameState.h"
-#include "Heuristics.h"
 #include "Move.h"
 #include "TranspositionTable.h"
 
@@ -12,43 +10,48 @@ namespace SquadroAI {
 
 class AIPlayer {
  public:
-  AIPlayer(
-      PlayerID player_id,
-      size_t tt_size_mb = 64);  // tt_size_mb: اندازه جدول انتقال به مگابایت
+  // سازنده: هویت بازیکن و اندازه جدول انتقال را مشخص
+  // می‌کند.
+  AIPlayer(PlayerID ai_id, size_t tt_size_mb = 64);
 
-  // پیدا کردن بهترین حرکت برای وضعیت فعلی با محدودیت زمانی
-  Move findBestMove(const GameState& initial_state,
-                    std::chrono::milliseconds time_limit);
+  // تابع اصلی: بهترین حرکت را در زمان مشخص شده پیدا
+  // می‌کند.
+  Move findBestMove(const GameState& initial_state, int time_limit_ms);
 
  private:
-  PlayerID my_player_id;
-  TranspositionTable transposition_table;
-  long long nodes_searched_total;  // برای آمار
+  // الگوریتم اصلی جستجوی Minimax با هرس آلفا-بتا و جدول انتقال
+  int alphaBeta(GameState& state, int depth, int alpha, int beta,
+                bool maximizing_player, Move* best_move = nullptr);
 
-  struct MinimaxResult {
-    int score;
-    Move best_move;
-    bool move_found;
-  };
+  // Quiescence search to handle tactical positions
+  int quiesce(GameState& state, int alpha, int beta, int depth_left);
 
-  // الگوریتم Minimax با هرس آلفا-بتا
-  MinimaxResult minimaxAlphaBeta(
-      GameState current_state, int depth, int alpha, int beta,
-      bool maximizing_player, std::chrono::steady_clock::time_point start_time,
-      std::chrono::milliseconds time_limit, int current_ply_from_root);
+  PlayerID ai_player_id;                   // هویت این AI (بازیکن ۱ یا ۲)
+  TranspositionTable transposition_table;  // جدول انتقال اختصاصی این AI
+  Move best_move_this_iteration;           // بهترین حرکت پیدا شده در عمق فعلی
 
-  // مرتب‌سازی حرکات برای بهبود کارایی هرس
-  // آلفا-بتا
-  void orderMoves(std::vector<Move>& moves, const GameState& state, int depth,
-                  const std::optional<TTEntry>& tt_entry);
-  /* int evaluateState(const GameState& state, PlayerID my_id) {
-      int my_pieces = state.getCompletedPieceCount(my_id);
-      PlayerID opponent_id = (my_id == PlayerID::PLAYER_1) ? PlayerID::PLAYER_2
-  : PlayerID::PLAYER_1; int opp_pieces =
-  state.getCompletedPieceCount(opponent_id);
+  // History heuristic tables for move ordering
+  static constexpr int MAX_PIECE_IDX = NUM_PIECES;
+  std::array<std::array<int, NUM_ROWS * NUM_COLS>, MAX_PIECE_IDX> history_table;
 
-      return (my_pieces - opp_pieces) * 100;
-  } */
+  // Killer moves for each ply
+  static constexpr int MAX_PLY = 64;  // Maximum search depth
+  std::array<std::array<Move, 2>, MAX_PLY> killer_moves;
+
+  // برای مدیریت زمان
+  std::chrono::steady_clock::time_point start_time;
+  int time_limit;
+  bool time_is_up;
+
+  // برای آمار و دیباگ
+  long long nodes_visited;
+
+  // Helper methods for move ordering
+  void updateHistoryScore(const Move& move, int depth);
+  void updateKillerMove(const Move& move, int ply);
+  int getMoveScore(const Move& move, int ply, const GameState& state) const;
+  void sortMoves(std::vector<Move>& moves, int ply,
+                 const GameState& state) const;
 };
 
 }  // namespace SquadroAI
