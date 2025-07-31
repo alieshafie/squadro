@@ -8,55 +8,41 @@
 namespace SquadroAI {
 
 struct Move {
-  int piece_index;  //(0-4) نسبی
-  Move() : piece_index(-1) {}
-
-  explicit Move(int index) : piece_index(index) {}
-
-  int getid(PlayerID player) const {
-    return (player == PlayerID::PLAYER_1) ? piece_index : piece_index + 5;
+  // تبدیل شناسه سراسری به اندیس نسبی برای بازیکن
+  // داده‌شده
+  int getRelativeIndex(PlayerID player) const {
+    if (id < 0 || id >= 2 * PIECES_PER_PLAYER) return -1;
+    if (player == PlayerID::PLAYER_1 && id < PIECES_PER_PLAYER) return id;
+    if (player == PlayerID::PLAYER_2 && id >= PIECES_PER_PLAYER)
+      return id - PIECES_PER_PLAYER;
+    return -1;
   }
+  int id;  // شناسه سراسری مهره (0-9)
 
-  bool operator==(const Move &other) const {
-    return piece_index == other.piece_index;
-  }
+  // مقدار ثابت برای حرکت نامعتبر
+  static constexpr int INVALID_ID = -1;
+  static Move NULL_MOVE() { return Move(INVALID_ID); }
 
-  // برای استفاده در std::map یا std::set اگر لازم باشد
-  bool operator<(const Move &other) const {
-    return piece_index < other.piece_index;
-  }
+  Move() : Move(INVALID_ID) {}
+  explicit Move(int index) : id(index) {}
 
-  int getRelativeIndex() const {
-    if (piece_index >= 0 && piece_index < PIECES_PER_PLAYER) {
-      return piece_index;  // Player 1's relative index is same as global
-    }
-    if (piece_index >= PIECES_PER_PLAYER && piece_index < NUM_PIECES) {
-      return piece_index - PIECES_PER_PLAYER;  // Player 2's relative index
-    }
-    return -1;  // Invalid or null move
-  }
+  bool operator==(const Move& other) const { return id == other.id; }
+  bool operator<(const Move& other) const { return id < other.id; }
 
+  // ساخت حرکت از اندیس نسبی و بازیکن
   static Move fromRelativeIndex(int relative_index, PlayerID player) {
-    static const Move NULL_MOVE = Move(-1);
-    if (relative_index < 0 || relative_index >= PIECES_PER_PLAYER) {
-      return NULL_MOVE;
-    }
-    if (player == PlayerID::PLAYER_1) {
-      return Move(relative_index);
-    }
-    if (player == PlayerID::PLAYER_2) {
+    if (relative_index < 0 || relative_index >= PIECES_PER_PLAYER)
+      return NULL_MOVE();
+    if (player == PlayerID::PLAYER_1) return Move(relative_index);
+    if (player == PlayerID::PLAYER_2)
       return Move(relative_index + PIECES_PER_PLAYER);
-    }
-    return NULL_MOVE;  // Should not happen
+    return NULL_MOVE();
   }
 
   std::string to_string() const {
-    if (piece_index == -1) return "NULL_MOVE";
-    return "P" + std::to_string(piece_index);
+    if (id == INVALID_ID) return "NULL_MOVE";
+    return "P" + std::to_string(id);
   }
 };
-
-// یک حرکت "نامعتبر" یا "تهی"
-const Move NULL_MOVE = Move(-1);
 
 }  // namespace SquadroAI

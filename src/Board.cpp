@@ -34,7 +34,7 @@ void Board::initializeBoard() {
 
 std::optional<Board::AppliedMoveInfo> Board::applyMove(
     const Move& move, PlayerID current_player) {
-  const int piece_id = move.getid(current_player);
+  const int piece_id = move.id;
 
   // 1. Validate basic move parameters
   if (piece_id < 0 || piece_id >= NUM_PIECES) {
@@ -184,9 +184,9 @@ std::optional<Board::AppliedMoveInfo> Board::applyMove(
 }
 
 void Board::undoMove(const AppliedMoveInfo& move_info) {
-  const PlayerID mover_owner = pieces[move_info.move.getid(PlayerID::PLAYER_1)]
-                                   .owner;  // روشی برای فهمیدن بازیکن
-  const int piece_id = move_info.move.getid(mover_owner);
+  const PlayerID mover_owner =
+      pieces[move_info.move.id].owner;  // روشی برای فهمیدن بازیکن
+  const int piece_id = move_info.move.id;
   Piece& mover = pieces[piece_id];
 
   // 1. بازگرداندن مهره‌ای که حرکت کرده
@@ -245,12 +245,13 @@ std::vector<Move> Board::generateLegalMoves(PlayerID player) const {
   legal_moves.reserve(5);  // بهینه‌سازی: از re-allocation
                            // جلوگیری می‌کند
 
-  int start_id = (player == PlayerID::PLAYER_1) ? 0 : 5;
   for (int i = 0; i < 5; ++i) {
-    if (!pieces[start_id + i].isFinished()) {
-      Move m(i);
+    Move m = Move::fromRelativeIndex(i, player);
+    int global_id = m.id;
+    if (global_id < 0 || global_id >= NUM_PIECES) continue;
+    if (!pieces[global_id].isFinished()) {
       if (isMoveValid(m, player)) {
-        legal_moves.emplace_back(i);  // i همان player_piece_index است
+        legal_moves.emplace_back(m);
       }
     }
   }
@@ -258,18 +259,13 @@ std::vector<Move> Board::generateLegalMoves(PlayerID player) const {
 }
 
 bool Board::isMoveValid(const Move& move, PlayerID player) const {
-  // Check piece index is valid
-  if (move.piece_index < 0 || move.piece_index > 4) {
-    std::cerr << "Invalid piece index: " << move.piece_index << std::endl;
+  // Check piece id is valid
+  if (move.id < 0 || move.id >= NUM_PIECES) {
+    std::cerr << "Invalid piece id: " << move.id << std::endl;
     return false;
   }
 
-  // Get piece info
-  const int piece_id = move.getid(player);
-  if (piece_id < 0 || piece_id >= NUM_PIECES) {
-    std::cerr << "Invalid piece id: " << piece_id << std::endl;
-    return false;
-  }
+  const int piece_id = move.id;
 
   const Piece& piece = pieces[piece_id];
 
@@ -282,7 +278,7 @@ bool Board::isMoveValid(const Move& move, PlayerID player) const {
   }
 
   if (piece.isFinished()) {
-    std::cerr << "Piece " << move.piece_index << " is finished" << std::endl;
+    std::cerr << "Piece " << move.id << " is finished" << std::endl;
     return false;
   }
 
@@ -295,10 +291,10 @@ bool Board::isMoveValid(const Move& move, PlayerID player) const {
       (piece.owner == PlayerID::PLAYER_1) ? (is_forward ? 1 : -1) : 0;
 
   // Print current and planned movement for debugging
-  std::cerr << "Validating move: Piece " << move.piece_index << " at ("
-            << piece.row << "," << piece.col << ") "
-            << (is_forward ? "forward" : "backward") << " by " << power
-            << " steps with dr=" << dr << " dc=" << dc << std::endl;
+  std::cerr << "Validating move: Piece " << move.id << " at (" << piece.row
+            << "," << piece.col << ") " << (is_forward ? "forward" : "backward")
+            << " by " << power << " steps with dr=" << dr << " dc=" << dc
+            << std::endl;
 
   // Check each step of the move
   int current_r = piece.row;

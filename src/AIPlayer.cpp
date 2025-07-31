@@ -63,7 +63,7 @@ Move AIPlayer::findBestMove(const GameState& initial_state, int time_limit_ms) {
     }
 
     // Update best move only if we got a valid move at this depth
-    if (root_best_move.piece_index >= 0) {
+    if (root_best_move.id >= 0) {
       best_move_this_iteration = root_best_move;
     }
 
@@ -78,7 +78,7 @@ Move AIPlayer::findBestMove(const GameState& initial_state, int time_limit_ms) {
     double nodes_per_second = (nodes_visited * 1000.0) / duration;
 
     std::cout << "Depth " << max_depth << " complete. Score: " << score
-              << ". Move: piece " << best_move_overall.getid(ai_player_id)
+              << ". Move: piece " << best_move_overall.id
               << ". Nodes: " << nodes_visited << " ("
               << static_cast<int>(nodes_per_second) << " N/s)"
               << ". TT Hits: " << transposition_table.hits << std::endl;
@@ -94,7 +94,7 @@ Move AIPlayer::findBestMove(const GameState& initial_state, int time_limit_ms) {
   }
 
   // Verify final move is valid
-  if (best_move_overall.piece_index >= 0) {
+  if (best_move_overall.id >= 0) {
     return best_move_overall;
   }
 
@@ -249,20 +249,20 @@ int AIPlayer::alphaBeta(GameState& state, int depth, int alpha, int beta,
 }
 
 void AIPlayer::updateHistoryScore(const Move& move, int depth) {
-  int piece_idx = move.piece_index;
+  int piece_idx = move.id;
   if (piece_idx >= 0 && piece_idx < MAX_PIECE_IDX) {
     // Map board position to 1D index
-    int pos_idx = move.getRelativeIndex() * NUM_COLS;
+    int pos_idx = move.id * NUM_COLS;
     history_table[piece_idx][pos_idx] += depth * depth;
   }
 }
 
 void AIPlayer::updateKillerMove(const Move& move, int ply) {
   if (ply >= MAX_PLY) return;
-  if (move.piece_index == -1) return;  // Don't store null moves
+  if (move.id == -1) return;  // Don't store null moves
 
   // Only store if it's different from existing killers
-  if (killer_moves[ply][0].piece_index != move.piece_index) {
+  if (killer_moves[ply][0].id != move.id) {
     killer_moves[ply][1] = killer_moves[ply][0];  // Shift existing killer
     killer_moves[ply][0] = move;                  // Store new killer
   }
@@ -280,18 +280,18 @@ int AIPlayer::getMoveScore(const Move& move, int ply,
 
   // Killer moves get next priority
   if (ply < MAX_PLY) {
-    if (killer_moves[ply][0].piece_index == move.piece_index) {
+    if (killer_moves[ply][0].id == move.id) {
       return KILLER_FIRST_BONUS;
     }
-    if (killer_moves[ply][1].piece_index == move.piece_index) {
+    if (killer_moves[ply][1].id == move.id) {
       return KILLER_SECOND_BONUS;
     }
   }
 
   // History heuristic provides final ordering
-  int piece_idx = move.piece_index;
+  int piece_idx = move.id;
   if (piece_idx >= 0 && piece_idx < MAX_PIECE_IDX) {
-    int pos_idx = move.getRelativeIndex() * NUM_COLS;
+    int pos_idx = move.id * NUM_COLS;
     score += history_table[piece_idx][pos_idx];
   }
 
@@ -315,9 +315,8 @@ void AIPlayer::sortMoves(std::vector<Move>& moves, int ply,
   std::sort(moves.begin(), moves.end(),
             [this, ply, &state, tt_move](const Move& a, const Move& b) {
               // TT move always comes first
-              if (tt_move && tt_move->piece_index == a.piece_index) return true;
-              if (tt_move && tt_move->piece_index == b.piece_index)
-                return false;
+              if (tt_move && tt_move->id == a.id) return true;
+              if (tt_move && tt_move->id == b.id) return false;
 
               return getMoveScore(a, ply, state) > getMoveScore(b, ply, state);
             });

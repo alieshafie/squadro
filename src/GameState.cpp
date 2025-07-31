@@ -7,8 +7,8 @@
 namespace SquadroAI {
 
 GameState::GameState()
-    : board(),  // سازنده پیش‌فرض Board فراخوانی می‌شود و تخته را
-                // مقداردهی می‌کند
+    : board(),  // سازنده پیش‌فرض Board فراخوانی می‌شود
+                // و تخته را مقداردهی می‌کند
       currentPlayer(PlayerID::PLAYER_1),
       winner(PlayerID::NONE),
       turnCount(0) {}
@@ -16,11 +16,13 @@ GameState::GameState()
 GameState GameState::createNextState(const Move& move) const {
   // First check the move against generateLegalMoves
   auto legal_moves = generateLegalMoves();
-  if (std::find(legal_moves.begin(), legal_moves.end(), move) == legal_moves.end()) {
-    std::cerr << "Move validation failed: move " << move.piece_index << " not in legal moves list.\n";
+  if (std::find(legal_moves.begin(), legal_moves.end(), move) ==
+      legal_moves.end()) {
+    std::cerr << "Move validation failed: move " << move.id
+              << " not in legal moves list.\n";
     std::cerr << "Legal moves: ";
     for (const auto& m : legal_moves) {
-      std::cerr << m.piece_index << " ";
+      std::cerr << m.id << " ";
     }
     std::cerr << "\n";
     throw std::logic_error("Attempted to create next state with illegal move");
@@ -35,13 +37,14 @@ GameState GameState::createNextState(const Move& move) const {
   // Create next state
   GameState nextState = *this;
   auto move_info = nextState.board.applyMove(move, this->currentPlayer);
-  
+
   if (!move_info.has_value()) {
     // Print board state at the time of failure
     std::cerr << "Move application failed. Current board state:\n";
     board.printBoard();
-    std::cerr << "Move details: Player " << (currentPlayer == PlayerID::PLAYER_1 ? "1" : "2") 
-              << ", Piece " << move.piece_index << "\n";
+    std::cerr << "Move details: Player "
+              << (currentPlayer == PlayerID::PLAYER_1 ? "1" : "2") << ", Piece "
+              << move.id << "\n";
     throw std::logic_error("Internal error: move validation inconsistency");
   }
 
@@ -71,8 +74,8 @@ bool GameState::isGameOver() const { return winner != PlayerID::NONE; }
 
 PlayerID GameState::getWinner() const { return winner; }
 
-// این تابع پس از هر حرکت فراخوانی می‌شود تا وضعیت برد/باخت را
-// بررسی کند
+// این تابع پس از هر حرکت فراخوانی می‌شود تا
+// وضعیت برد/باخت را بررسی کند
 void GameState::updateGameStatus() {
   int p1_finished_count = 0;
   int p2_finished_count = 0;

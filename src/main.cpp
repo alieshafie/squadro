@@ -114,11 +114,11 @@ int main(int argc, char *argv[]) {
         Move best_move =
             ai_player.findBestMove(current_game_state, time_for_move.count());
 
-        if (best_move.piece_index !=
-            -1) {  // Compare with -1 directly since NULL_MOVE is inside the
-                   // function scope
+        if (best_move.id != -1) {  // Compare with -1 directly since NULL_MOVE
+                                   // is inside the function scope
           // FIXED: Convert global index to relative index for the GUI.
-          int relative_idx_to_send = best_move.getRelativeIndex();
+          int relative_idx_to_send =
+              best_move.getRelativeIndex(my_ai_player_id);
           std::cout << "AI chose " << best_move.to_string()
                     << ". Sending relative index: " << relative_idx_to_send
                     << std::endl;
