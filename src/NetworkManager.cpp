@@ -30,7 +30,7 @@ bool SquadroAI::NetworkManager::sendMoveToGui(int pawn_to_move_idx) {
   std::string json = "{\"move\": \"" + std::to_string(pawn_to_move_idx) + "\"}";
 
   // send Json to GUI
-  auto res = m_gui_client->Post("/move", json, "application/json");
+  auto res = m_gui_client->Post("/", json, "application/json");
 
   // Checking
   if (res && res->status == 200) {
@@ -52,18 +52,25 @@ void SquadroAI::NetworkManager::startListeningForOpponentMoves(
 
   m_listen_server = std::make_unique<httplib::Server>();
 
-  m_listen_server->Post("/move", [this, on_opponent_move_received](
-                                     const httplib::Request& req,
-                                     httplib::Response& res) {
+  m_listen_server->Post("/", [this, on_opponent_move_received](
+                                 const httplib::Request& req,
+                                 httplib::Response& res) {
     try {
       auto j = json::parse(req.body);
       if (j.contains("move")) {
-        std::string move_str = j["move"];
-        int move_idx = std::stoi(move_str);
+        int move_idx = -1;
+        if (j["move"].is_string()) {
+          move_idx = std::stoi(j["move"].get<std::string>());
+        } else if (j["move"].is_number_integer()) {
+          move_idx = j["move"].get<int>();
+        } else {
+          res.status = 400;
+          res.set_content("Bad Request: 'move' must be string or integer",
+                          "text/plain");
+          return;
+        }
         std::cout << "Received move: " << move_idx << std::endl;
-
         on_opponent_move_received(move_idx);
-
         res.status = 200;
         res.set_content("OK", "text/plain");
       } else {
