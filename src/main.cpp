@@ -145,13 +145,16 @@ int main(int argc, char *argv[]) {
         std::cout << "Opponent's turn. Waiting for move..." << std::endl;
 
         std::unique_lock<std::mutex> lock(network_mutex);
-        if (!cv_opponent_move.wait_for(lock, std::chrono::seconds(65),
+        // with timeout
+        /* if (!cv_opponent_move.wait_for(lock, std::chrono::seconds(65),
                                        [] { return g_opponent_has_moved; })) {
           std::cerr << "TIMEOUT: No move received from opponent. Terminating."
                     << std::endl;
           network_manager.stopListening();
           return 1;
-        }
+        } */
+
+        cv_opponent_move.wait(lock, [] { return g_opponent_has_moved; });
 
         // FIXED: Create a correct Move object from the opponent's relative
         // index.
