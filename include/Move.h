@@ -12,9 +12,9 @@ struct Move {
   // داده‌شده
   int getRelativeIndex(PlayerID player) const {
     if (id < 0 || id >= 2 * PIECES_PER_PLAYER) return -1;
-    if (player == PlayerID::PLAYER_1 && id < PIECES_PER_PLAYER) return id;
+    if (player == PlayerID::PLAYER_1 && id < PIECES_PER_PLAYER) return id + 1;
     if (player == PlayerID::PLAYER_2 && id >= PIECES_PER_PLAYER)
-      return id - PIECES_PER_PLAYER;
+      return id - PIECES_PER_PLAYER + 1;
     return -1;
   }
   int id;  // شناسه سراسری مهره (0-9)
@@ -31,11 +31,11 @@ struct Move {
 
   // ساخت حرکت از اندیس نسبی و بازیکن
   static Move fromRelativeIndex(int relative_index, PlayerID player) {
-    if (relative_index < 0 || relative_index >= PIECES_PER_PLAYER)
+    if (relative_index < 1 || relative_index > PIECES_PER_PLAYER)
       return NULL_MOVE();
-    if (player == PlayerID::PLAYER_1) return Move(relative_index);
+    if (player == PlayerID::PLAYER_1) return Move(relative_index - 1);
     if (player == PlayerID::PLAYER_2)
-      return Move(relative_index + PIECES_PER_PLAYER);
+      return Move(relative_index + PIECES_PER_PLAYER - 1);
     return NULL_MOVE();
   }
 

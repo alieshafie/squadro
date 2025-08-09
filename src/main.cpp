@@ -25,7 +25,7 @@ using namespace SquadroAI;
 std::mutex network_mutex;
 std::condition_variable cv_opponent_move;
 bool g_opponent_has_moved = false;
-int g_last_opponent_pawn_move_idx = -1;  // Relative index (0-4)
+int g_last_opponent_pawn_move_idx = -1;  // Relative index (1-5)
 // --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
 
 void opponent_move_callback(int opponent_pawn_index) {

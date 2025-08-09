@@ -46,7 +46,8 @@ class Piece {
         (owner == PlayerID::PLAYER_1)
             ? ((status == PieceStatus::ON_BOARD_FORWARD) ? '>' : '<')
             : ((status == PieceStatus::ON_BOARD_FORWARD) ? '^' : 'v');
-    snprintf(buffer, sizeof(buffer), "%c%d%c", player_char, id % 5, dir_char);
+    snprintf(buffer, sizeof(buffer), "%c%d%c", player_char,
+             id % PIECES_PER_PLAYER + 1, dir_char);
     return std::string(buffer);
   }
 };
