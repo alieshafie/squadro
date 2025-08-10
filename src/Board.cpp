@@ -1,5 +1,7 @@
+// === File: src/Board.cpp ===
 #include "Board.h"
 
+#include <cstring>  // memcpy if needed
 #include <iostream>
 #include <stdexcept>
 #include <vector>
@@ -14,52 +16,50 @@ void Board::initializeBoard() {
   for (int id = 0; id < NUM_PIECES; ++id) {
     Piece& p = pieces[id];
     p.id = id;
-    p.owner = (id < 5) ? PlayerID::PLAYER_1 : PlayerID::PLAYER_2;
+    p.owner =
+        (id < PIECES_PER_PLAYER) ? PlayerID::PLAYER_1 : PlayerID::PLAYER_2;
     p.status = PieceStatus::ON_BOARD_FORWARD;
 
-    int player_piece_index = id % 5;
-    p.forward_power = FWD_POWERS[player_piece_index];
-    p.backward_power = BCK_POWERS[player_piece_index];
+    int player_piece_index = id % PIECES_PER_PLAYER;
+    p.forward_power = FWD_POWERS[id];
+    p.backward_power = BCK_POWERS[id];
 
     if (p.owner == PlayerID::PLAYER_1) {
       p.row = player_piece_index + 1;
-      p.col = 0;  // خانه شروع
-    } else {      // Player 2
-      p.row = 0;  // خانه شروع
+      p.col = 0;
+    } else {
+      p.row = 0;
       p.col = player_piece_index + 1;
     }
     cell_ref(p.row, p.col) = p.id;
   }
 }
 
+static inline void clamp_to_edge(int& r, int& c, int dr, int dc) {
+  if (dr > 0)
+    r = NUM_ROWS - 1;
+  else if (dr < 0)
+    r = 0;
+  if (dc > 0)
+    c = NUM_COLS - 1;
+  else if (dc < 0)
+    c = 0;
+}
+
 std::optional<Board::AppliedMoveInfo> Board::applyMove(
     const Move& move, PlayerID current_player) {
   const int piece_id = move.id;
 
-  // 1. Validate basic move parameters
   if (piece_id < 0 || piece_id >= NUM_PIECES) {
-    std::cerr << "Invalid piece ID in applyMove: " << piece_id << std::endl;
     return std::nullopt;
   }
 
   Piece& mover = pieces[piece_id];
 
-  // 2. Validate piece ownership and state
-  if (mover.owner != current_player) {
-    std::cerr << "Wrong piece owner in applyMove: expected "
-              << (current_player == PlayerID::PLAYER_1 ? "P1" : "P2")
-              << " but was "
-              << (mover.owner == PlayerID::PLAYER_1 ? "P1" : "P2") << std::endl;
+  if (mover.owner != current_player || mover.isFinished()) {
     return std::nullopt;
   }
 
-  if (mover.isFinished()) {
-    std::cerr << "Attempting to move finished piece " << piece_id
-              << " in applyMove" << std::endl;
-    return std::nullopt;
-  }
-
-  // 3. Calculate move parameters
   const bool is_forward = (mover.status == PieceStatus::ON_BOARD_FORWARD);
   const int power = mover.getCurrentMovePower();
   const int dr =
@@ -67,99 +67,158 @@ std::optional<Board::AppliedMoveInfo> Board::applyMove(
   const int dc =
       (mover.owner == PlayerID::PLAYER_1) ? (is_forward ? 1 : -1) : 0;
 
-  std::cerr << "Applying move: Piece " << piece_id << " at (" << mover.row
-            << "," << mover.col << ") " << (is_forward ? "forward" : "backward")
-            << " by " << power << " steps with dr=" << dr << " dc=" << dc
-            << std::endl;
-
-  // 4. Prepare move info
   AppliedMoveInfo move_info;
-  move_info.move = move;
-  move_info.original_mover_status = mover.status;
-  move_info.piece_was_captured = false;
+  move_info.mover_id = static_cast<uint8_t>(piece_id);
+  move_info.start_row = static_cast<int8_t>(mover.row);
+  move_info.start_col = static_cast<int8_t>(mover.col);
+  move_info.original_mover_status = static_cast<uint8_t>(mover.status);
+  move_info.captured_count = 0;
 
-  // Store starting position
   const int start_row = mover.row;
   const int start_col = mover.col;
 
-  // 5. Validate and simulate the complete move
-  int current_r = mover.row;
-  int current_c = mover.col;
-
-  if (!isPositionValid(current_r, current_c)) {
+  if (!isPositionValid(start_row, start_col)) {
     return std::nullopt;
   }
 
-  // Clear starting position
   cell_ref(start_row, start_col) = EMPTY_CELL;
 
-  // 6. Execute the move step by step
-  for (int i = 0; i < power; ++i) {
-    current_r += dr;
-    current_c += dc;
+  int current_r = start_row;
+  int current_c = start_col;
 
-    if (!isPositionValid(current_r, current_c)) {
-      // Restore piece to starting position
-      mover.row = start_row;
-      mover.col = start_col;
-      cell_ref(start_row, start_col) = piece_id;
-      return std::nullopt;
+  // Flag: وقتی capture رخ دهد حرکت پایان می‌یابد (طبق
+  // خواستهٔ تو)
+  bool capture_happened = false;
+
+  for (int step = 0; step < power; ++step) {
+    int next_r = current_r + dr;
+    int next_c = current_c + dc;
+
+    if (!isPositionValid(next_r, next_c)) {
+      clamp_to_edge(next_r, next_c, dr, dc);
+      current_r = next_r;
+      current_c = next_c;
+      break;
     }
+
+    current_r = next_r;
+    current_c = next_c;
 
     if (cell_ref(current_r, current_c) != EMPTY_CELL) {
-      const int opponent_id = cell_ref(current_r, current_c);
+      // آغاز capture chain — پس از حل chain حرکت تمام
+      // می‌شود
+      capture_happened = true;
 
-      if (opponent_id < 0 || opponent_id >= NUM_PIECES) {
-        // Restore piece to starting position
-        mover.row = start_row;
-        mover.col = start_col;
-        cell_ref(start_row, start_col) = piece_id;
-        return std::nullopt;
-      }
+      while (isPositionValid(current_r, current_c) &&
+             cell_ref(current_r, current_c) != EMPTY_CELL) {
+        const int opponent_id = cell_ref(current_r, current_c);
+        if (opponent_id < 0 || opponent_id >= NUM_PIECES) {
+          // بازگردانی سریع و خطا
+          mover.row = start_row;
+          mover.col = start_col;
+          cell_ref(start_row, start_col) = piece_id;
+          return std::nullopt;
+        }
 
-      Piece& opponent_piece = pieces[opponent_id];
-      if (opponent_piece.owner == mover.owner) {
-        // Restore piece to starting position
-        mover.row = start_row;
-        mover.col = start_col;
-        cell_ref(start_row, start_col) = piece_id;
-        return std::nullopt;
-      }
+        Piece& opponent_piece = pieces[opponent_id];
+        if (opponent_piece.owner == mover.owner) {
+          // can't capture own piece -> rollback
+          mover.row = start_row;
+          mover.col = start_col;
+          cell_ref(start_row, start_col) = piece_id;
+          return std::nullopt;
+        }
 
-      // Save capture info
-      move_info.captured_piece = opponent_piece;
-      move_info.piece_was_captured = true;
+        if (move_info.captured_count >= MAX_POSSIBLE_CAPTURES) {
+          mover.row = start_row;
+          mover.col = start_col;
+          cell_ref(start_row, start_col) = piece_id;
+          return std::nullopt;
+        }
 
-      // Clear opponent's current position
-      cell_ref(opponent_piece.row, opponent_piece.col) = EMPTY_CELL;
+        auto& ci = move_info.captures[move_info.captured_count++];
+        ci.id = static_cast<uint8_t>(opponent_piece.id);
+        ci.prev_row = static_cast<int8_t>(opponent_piece.row);
+        ci.prev_col = static_cast<int8_t>(opponent_piece.col);
 
-      // Reset opponent piece
-      opponent_piece.status = PieceStatus::ON_BOARD_FORWARD;
-      int opponent_idx = opponent_id % 5;
-      if (opponent_piece.owner == PlayerID::PLAYER_1) {
-        opponent_piece.row = opponent_idx + 1;
-        opponent_piece.col = 0;
-      } else {
-        opponent_piece.row = 0;
-        opponent_piece.col = opponent_idx + 1;
-      }
+        // پاک کردن خانهٔ فعلیِ حریف
+        cell_ref(opponent_piece.row, opponent_piece.col) = EMPTY_CELL;
 
-      // Make sure reset position is available
-      if (cell_ref(opponent_piece.row, opponent_piece.col) != EMPTY_CELL) {
-        // Restore both pieces
-        opponent_piece = move_info.captured_piece;
-        cell_ref(opponent_piece.row, opponent_piece.col) = opponent_id;
-        mover.row = start_row;
-        mover.col = start_col;
-        cell_ref(start_row, start_col) = piece_id;
-        return std::nullopt;
-      }
+        // تعیین مکان ریست بر اساس وضعیت فعلیِ حریف (status را تغییر
+        // نمی‌دهیم)
+        int opponent_idx = opponent_id % PIECES_PER_PLAYER;
+        int reset_row, reset_col;
 
-      cell_ref(opponent_piece.row, opponent_piece.col) = opponent_id;
-    }
-  }
+        if (opponent_piece.status == PieceStatus::ON_BOARD_FORWARD) {
+          // ریست به home (trough) مطابق state forward
+          if (opponent_piece.owner == PlayerID::PLAYER_1) {
+            reset_row = opponent_idx + 1;
+            reset_col = 0;
+          } else {
+            reset_row = 0;
+            reset_col = opponent_idx + 1;
+          }
+        } else {
+          // status == ON_BOARD_BACKWARD (یا هر حالت بازگشتی): ریست به نقطهٔ
+          // انتهایی مسیر
+          if (opponent_piece.owner == PlayerID::PLAYER_1) {
+            reset_row = opponent_idx + 1;
+            reset_col = NUM_COLS - 1;
+          } else {
+            reset_row = NUM_ROWS - 1;
+            reset_col = opponent_idx + 1;
+          }
+        }
 
-  // 7. Update mover's position and status
+        // بررسی در دسترس بودن مکان ریست
+        if (cell_ref(reset_row, reset_col) != EMPTY_CELL &&
+            cell_ref(reset_row, reset_col) != opponent_id) {
+          // rollback همهٔ captures ذخیره‌شده تا کنون و
+          // restore mover
+          for (uint8_t k = 0; k < move_info.captured_count; ++k) {
+            const auto& rci = move_info.captures[k];
+            pieces[rci.id].row = rci.prev_row;
+            pieces[rci.id].col = rci.prev_col;
+            cell_ref(rci.prev_row, rci.prev_col) = rci.id;
+          }
+          mover.row = start_row;
+          mover.col = start_col;
+          mover.status =
+              static_cast<PieceStatus>(move_info.original_mover_status);
+          cell_ref(start_row, start_col) = piece_id;
+          return std::nullopt;
+        }
+
+        // انتقال حریف به reset location — **status تغییر
+        // نمی‌کند**
+        opponent_piece.row = reset_row;
+        opponent_piece.col = reset_col;
+        cell_ref(reset_row, reset_col) = opponent_id;
+
+        // mover باید به خانهٔ پس از موقعیتِ
+        // گرفته‌شده برود
+        int beyond_r = current_r + dr;
+        int beyond_c = current_c + dc;
+
+        if (!isPositionValid(beyond_r, beyond_c)) {
+          clamp_to_edge(beyond_r, beyond_c, dr, dc);
+          current_r = beyond_r;
+          current_c = beyond_c;
+          break;  // برخورد به لبه => خاتمهٔ chain
+        } else {
+          current_r = beyond_r;
+          current_c = beyond_c;
+          // ادامهٔ while برای بررسی chain بعدی
+          continue;
+        }
+      }  // end while chain
+
+      // حرکت بلافاصله بعد از حل chain تمام می‌شود
+      break;
+    }  // end if occupied
+  }  // end for steps
+
+  // به‌روزرسانی موقعیت mover
   mover.row = current_r;
   mover.col = current_c;
 
@@ -175,77 +234,77 @@ std::optional<Board::AppliedMoveInfo> Board::applyMove(
         is_forward ? PieceStatus::ON_BOARD_BACKWARD : PieceStatus::FINISHED;
   }
 
-  // 8. Place mover in final position if not finished
+  // قرار دادن mover در صفحه در صورت فعال بودن
   if (!mover.isFinished()) {
+    if (cell_ref(mover.row, mover.col) != EMPTY_CELL) {
+      // rollback captures and restore mover
+      for (uint8_t k = 0; k < move_info.captured_count; ++k) {
+        const auto& rci = move_info.captures[k];
+        pieces[rci.id].row = rci.prev_row;
+        pieces[rci.id].col = rci.prev_col;
+        cell_ref(rci.prev_row, rci.prev_col) = rci.id;
+      }
+      mover.row = start_row;
+      mover.col = start_col;
+      mover.status = static_cast<PieceStatus>(move_info.original_mover_status);
+      cell_ref(start_row, start_col) = piece_id;
+      return std::nullopt;
+    }
     cell_ref(mover.row, mover.col) = piece_id;
+  } else {
+    // finished -> no placement in grid
   }
 
   return move_info;
 }
 
 void Board::undoMove(const AppliedMoveInfo& move_info) {
-  const PlayerID mover_owner =
-      pieces[move_info.move.id].owner;  // روشی برای فهمیدن بازیکن
-  const int piece_id = move_info.move.id;
+  const int piece_id = static_cast<int>(move_info.mover_id);
   Piece& mover = pieces[piece_id];
 
-  // 1. بازگرداندن مهره‌ای که حرکت کرده
-  if (!mover.isFinished()) {
-    cell_ref(mover.row, mover.col) = EMPTY_CELL;  // خالی کردن خانه فعلی
+  // پاک کردن جای فعلی mover در صورت وجود
+  if (!mover.isFinished() && isPositionValid(mover.row, mover.col)) {
+    if (cell_ref(mover.row, mover.col) == piece_id)
+      cell_ref(mover.row, mover.col) = EMPTY_CELL;
   }
 
-  // بازگرداندن وضعیت قبلی مهره
-  mover.status = move_info.original_mover_status;
-
-  // Reset mover and captured piece positions
-  int player_piece_index = piece_id % 5;
-
-  // Calculate proper reset position based on original status
-  // For moving piece
-  if (mover.owner == PlayerID::PLAYER_1) {
-    mover.col =
-        (move_info.original_mover_status == PieceStatus::ON_BOARD_FORWARD)
-            ? 0
-            : NUM_COLS - 1;
-    mover.row = player_piece_index + 1;
-  } else {  // Player 2
-    mover.row =
-        (move_info.original_mover_status == PieceStatus::ON_BOARD_FORWARD)
-            ? 0
-            : NUM_ROWS - 1;
-    mover.col = player_piece_index + 1;
+  // بازگرداندن وضعیت و مکان mover به حالت قبل
+  mover.status = static_cast<PieceStatus>(move_info.original_mover_status);
+  mover.row = move_info.start_row;
+  mover.col = move_info.start_col;
+  if (!mover.isFinished() && isPositionValid(mover.row, mover.col)) {
+    cell_ref(mover.row, mover.col) = piece_id;
   }
 
-  // Clear old position and set new one
-  cell_ref(mover.row, mover.col) = piece_id;
+  // بازگردانی captures به حالتِ prev_row/prev_col (status تغییر نکرده بود)
+  // بازگردانی به ترتیب معکوس برای اطمینان از سالم بودن
+  // سلول‌ها
+  for (int k = static_cast<int>(move_info.captured_count) - 1; k >= 0; --k) {
+    const auto& ci = move_info.captures[k];
+    Piece& cap = pieces[ci.id];
 
-  // 2. Restore captured piece if there was one
-  if (move_info.piece_was_captured) {
-    const Piece& captured_info = move_info.captured_piece;
-
-    // Remove from current position if needed
-    int curr_row = pieces[captured_info.id].row;
-    int curr_col = pieces[captured_info.id].col;
-    if (isPositionValid(curr_row, curr_col)) {
-      cell_ref(curr_row, curr_col) = EMPTY_CELL;
+    // پاک‌سازی مکان فعلی (که در apply به آن منتقل
+    // شده بود)
+    if (isPositionValid(cap.row, cap.col) &&
+        cell_ref(cap.row, cap.col) == ci.id) {
+      cell_ref(cap.row, cap.col) = EMPTY_CELL;
     }
 
-    // Restore captured piece's state
-    pieces[captured_info.id] = captured_info;
+    // بازگردانی مکان قبلی (status نیازی به بازنشانی ندارد)
+    cap.row = ci.prev_row;
+    cap.col = ci.prev_col;
 
-    // Place back on board
-    if (isPositionValid(captured_info.row, captured_info.col)) {
-      cell_ref(captured_info.row, captured_info.col) = captured_info.id;
+    if (isPositionValid(cap.row, cap.col)) {
+      cell_ref(cap.row, cap.col) = ci.id;
     }
   }
 }
 
 std::vector<Move> Board::generateLegalMoves(PlayerID player) const {
   std::vector<Move> legal_moves;
-  legal_moves.reserve(5);  // بهینه‌سازی: از re-allocation
-                           // جلوگیری می‌کند
+  legal_moves.reserve(PIECES_PER_PLAYER);
 
-  for (int i = 0; i < 5; ++i) {
+  for (int i = 1; i <= PIECES_PER_PLAYER; ++i) {
     Move m = Move::fromRelativeIndex(i, player);
     int global_id = m.id;
     if (global_id < 0 || global_id >= NUM_PIECES) continue;
@@ -259,30 +318,15 @@ std::vector<Move> Board::generateLegalMoves(PlayerID player) const {
 }
 
 bool Board::isMoveValid(const Move& move, PlayerID player) const {
-  // Check piece id is valid
   if (move.id < 0 || move.id >= NUM_PIECES) {
-    std::cerr << "Invalid piece id: " << move.id << std::endl;
     return false;
   }
 
   const int piece_id = move.id;
-
   const Piece& piece = pieces[piece_id];
 
-  // Check basic validity
-  if (piece.owner != player) {
-    std::cerr << "Wrong piece owner: expected "
-              << (player == PlayerID::PLAYER_1 ? "P1" : "P2") << " but was "
-              << (piece.owner == PlayerID::PLAYER_1 ? "P1" : "P2") << std::endl;
-    return false;
-  }
+  if (piece.owner != player || piece.isFinished()) return false;
 
-  if (piece.isFinished()) {
-    std::cerr << "Piece " << move.id << " is finished" << std::endl;
-    return false;
-  }
-
-  // Calculate move parameters
   const bool is_forward = (piece.status == PieceStatus::ON_BOARD_FORWARD);
   const int power = piece.getCurrentMovePower();
   const int dr =
@@ -290,66 +334,120 @@ bool Board::isMoveValid(const Move& move, PlayerID player) const {
   const int dc =
       (piece.owner == PlayerID::PLAYER_1) ? (is_forward ? 1 : -1) : 0;
 
-  // Print current and planned movement for debugging
-  std::cerr << "Validating move: Piece " << move.id << " at (" << piece.row
-            << "," << piece.col << ") " << (is_forward ? "forward" : "backward")
-            << " by " << power << " steps with dr=" << dr << " dc=" << dc
-            << std::endl;
-
-  // Check each step of the move
   int current_r = piece.row;
   int current_c = piece.col;
 
-  // Validate starting position
-  if (!isPositionValid(current_r, current_c)) {
-    std::cerr << "Invalid starting position (" << current_r << "," << current_c
-              << ")" << std::endl;
-    return false;
-  }
+  if (!isPositionValid(current_r, current_c)) return false;
 
-  // Simulate the move step by step
   for (int i = 0; i < power; ++i) {
-    current_r += dr;
-    current_c += dc;
+    int next_r = current_r + dr;
+    int next_c = current_c + dc;
 
-    // Check position is valid
-    if (!isPositionValid(current_r, current_c)) {
-      std::cerr << "Step " << i + 1 << " position (" << current_r << ","
-                << current_c << ") is invalid" << std::endl;
-      return false;
+    if (!isPositionValid(next_r, next_c)) {
+      clamp_to_edge(next_r, next_c, dr, dc);
+      current_r = next_r;
+      current_c = next_c;
+      break;
     }
 
-    // Check for captures
+    current_r = next_r;
+    current_c = next_c;
+
     if (cell_ref(current_r, current_c) != EMPTY_CELL) {
       const int opponent_id = cell_ref(current_r, current_c);
-
-      // Validate opponent piece
-      if (opponent_id < 0 || opponent_id >= NUM_PIECES) {
-        std::cerr << "Invalid opponent piece id at (" << current_r << ","
-                  << current_c << "): " << opponent_id << std::endl;
-        return false;
-      }
+      if (opponent_id < 0 || opponent_id >= NUM_PIECES) return false;
 
       const Piece& opponent = pieces[opponent_id];
-      if (opponent.owner == player) {
-        std::cerr << "Cannot capture own piece at (" << current_r << ","
-                  << current_c << ")" << std::endl;
+      if (opponent.owner == player) return false;
+
+      // تعیین ریست تراق مطابق status فعلیِ opponent (بدون تغییر status)
+      int opponent_idx = opponent_id % PIECES_PER_PLAYER;
+      int reset_row, reset_col;
+
+      if (opponent.status == PieceStatus::ON_BOARD_FORWARD) {
+        if (opponent.owner == PlayerID::PLAYER_1) {
+          reset_row = opponent_idx + 1;
+          reset_col = 0;
+        } else {
+          reset_row = 0;
+          reset_col = opponent_idx + 1;
+        }
+      } else {
+        if (opponent.owner == PlayerID::PLAYER_1) {
+          reset_row = opponent_idx + 1;
+          reset_col = NUM_COLS - 1;
+        } else {
+          reset_row = NUM_ROWS - 1;
+          reset_col = opponent_idx + 1;
+        }
+      }
+
+      if (cell_ref(reset_row, reset_col) != EMPTY_CELL &&
+          cell_ref(reset_row, reset_col) != opponent_id) {
         return false;
       }
 
-      // Check reset position for captured piece
-      int opponent_idx = opponent_id % 5;
-      int reset_row =
-          opponent.owner == PlayerID::PLAYER_1 ? opponent_idx + 1 : 0;
-      int reset_col =
-          opponent.owner == PlayerID::PLAYER_1 ? 0 : opponent_idx + 1;
+      // شبیه‌سازی chain: mover به خانهٔ بعد از opponent
+      // می‌رود
+      int beyond_r = current_r + dr;
+      int beyond_c = current_c + dc;
 
-      // Make sure reset position is available
-      if (cell_ref(reset_row, reset_col) != EMPTY_CELL &&
-          cell_ref(reset_row, reset_col) != opponent_id) {
-        std::cerr << "Reset position (" << reset_row << "," << reset_col
-                  << ") is blocked for piece " << opponent_id << std::endl;
-        return false;
+      if (!isPositionValid(beyond_r, beyond_c)) {
+        clamp_to_edge(beyond_r, beyond_c, dr, dc);
+        current_r = beyond_r;
+        current_c = beyond_c;
+        break;
+      } else {
+        current_r = beyond_r;
+        current_c = beyond_c;
+        // بررسی زنجیرهٔ بعدی (تا زمانی که خانهٔ جدید
+        // اشغال‌شده باشد)
+        while (isPositionValid(current_r, current_c) &&
+               cell_ref(current_r, current_c) != EMPTY_CELL) {
+          const int op2 = cell_ref(current_r, current_c);
+          if (op2 < 0 || op2 >= NUM_PIECES) return false;
+          const Piece& opponent2 = pieces[op2];
+          if (opponent2.owner == player) return false;
+
+          int op2_idx = op2 % PIECES_PER_PLAYER;
+          int rtr, ctr;
+          if (opponent2.status == PieceStatus::ON_BOARD_FORWARD) {
+            if (opponent2.owner == PlayerID::PLAYER_1) {
+              rtr = op2_idx + 1;
+              ctr = 0;
+            } else {
+              rtr = 0;
+              ctr = op2_idx + 1;
+            }
+          } else {
+            if (opponent2.owner == PlayerID::PLAYER_1) {
+              rtr = op2_idx + 1;
+              ctr = NUM_COLS - 1;
+            } else {
+              rtr = NUM_ROWS - 1;
+              ctr = op2_idx + 1;
+            }
+          }
+
+          if (cell_ref(rtr, ctr) != EMPTY_CELL && cell_ref(rtr, ctr) != op2)
+            return false;
+
+          int br = current_r + dr;
+          int bc = current_c + dc;
+          if (!isPositionValid(br, bc)) {
+            clamp_to_edge(br, bc, dr, dc);
+            current_r = br;
+            current_c = bc;
+            break;
+          } else {
+            current_r = br;
+            current_c = bc;
+            // ادامه chain
+          }
+        }
+        // پس از chain شبیه‌سازی، حرکت خاتمه
+        // می‌یابد
+        break;
       }
     }
   }
@@ -357,7 +455,6 @@ bool Board::isMoveValid(const Move& move, PlayerID player) const {
   return true;
 }
 
-// توابع Getter
 const Piece& Board::getPiece(int piece_id) const { return pieces[piece_id]; }
 
 const std::array<Piece, NUM_PIECES>& Board::getAllPieces() const {

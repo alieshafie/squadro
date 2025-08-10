@@ -1,6 +1,7 @@
 #pragma once
 
 #include <array>
+#include <cstdint>
 #include <optional>
 #include <vector>
 
@@ -14,12 +15,21 @@ constexpr Cell EMPTY_CELL = -1;
 
 class Board {
  public:
+  static constexpr int MAX_POSSIBLE_CAPTURES = PIECES_PER_PLAYER;
+
+  struct CapturedInfo {
+    uint8_t id;
+    int8_t prev_row;
+    int8_t prev_col;
+  };
+
   struct AppliedMoveInfo {
-    Move move;
-    Piece captured_piece;  // یک کپی کامل از مهره‌ای که
-                           // گرفته شده
-    PieceStatus original_mover_status;
-    bool piece_was_captured = false;
+    uint8_t mover_id;
+    int8_t start_row;
+    int8_t start_col;
+    uint8_t original_mover_status;
+    uint8_t captured_count = 0;
+    std::array<CapturedInfo, MAX_POSSIBLE_CAPTURES> captures;
   };
 
   Board();  // سازنده، تخته را به وضعیت اولیه مقداردهی
@@ -49,28 +59,16 @@ class Board {
   void initializeBoard();
 
   // **بهینه‌سازی کلیدی شماره ۱: Data Locality**
-  // به جای grid دو بعدی، از یک آرایه یک بعدی استفاده
-  // می‌کنیم.
-  // این کار باعث می‌شود کل تخته در یک بلوک
-  // حافظه پیوسته قرار گیرد.
   std::array<Cell, NUM_ROWS * NUM_COLS> grid;
 
   // **بهینه‌سازی کلیدی شماره ۲: Single Source of Truth**
-  // تمام مهره‌ها به صورت یک آرایه با اندازه ثابت درون
-  // خود کلاس
-  // Board ذخیره می‌شوند. `grid` و `pieces` کنار هم در
-  // حافظه قرار می‌گیرند و سرعت دسترسی به اوج
-  // می‌رسد.
   std::array<Piece, NUM_PIECES> pieces;
 
-  // توابع کمکی inline برای دسترسی سریع به
-  // سلول‌های grid
   inline Cell& cell_ref(int r, int c) { return grid[r * NUM_COLS + c]; }
   inline const Cell& cell_ref(int r, int c) const {
     return grid[r * NUM_COLS + c];
   }
 
-  // Helper function to validate board positions
   inline bool isPositionValid(int row, int col) const {
     return row >= 0 && row < NUM_ROWS && col >= 0 && col < NUM_COLS;
   }
