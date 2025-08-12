@@ -40,15 +40,13 @@ class Piece {
 
   // این تابع برای دیباگ مفید است و روی عملکرد تأثیر ندارد
   std::string to_string() const {
-    char buffer[4];  // e.g., "P1>", "p8<"
-    char player_char = 'p';
+    char player_char = (owner == PlayerID::PLAYER_1) ? 'P' : 'p';
     char dir_char =
         (owner == PlayerID::PLAYER_1)
             ? ((status == PieceStatus::ON_BOARD_FORWARD) ? '>' : '<')
             : ((status == PieceStatus::ON_BOARD_FORWARD) ? '^' : 'v');
-    snprintf(buffer, sizeof(buffer), "%c%d%c", player_char,
-             id % PIECES_PER_PLAYER + 1, dir_char);
-    return std::string(buffer);
+    return std::string(1, player_char) +
+           std::to_string(id % PIECES_PER_PLAYER + 1) + dir_char;
   }
 };
 
