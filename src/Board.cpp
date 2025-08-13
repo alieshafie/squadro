@@ -4,7 +4,6 @@
 #include <cstring>  // memcpy if needed
 #include <iostream>
 #include <stdexcept>
-#include <vector>
 
 namespace SquadroAI {
 
@@ -218,6 +217,10 @@ std::optional<Board::AppliedMoveInfo> Board::applyMove(
     }  // end if occupied
   }  // end for steps
 
+  // Store destination coordinates before updating the mover piece
+  move_info.dest_row = static_cast<int8_t>(current_r);
+  move_info.dest_col = static_cast<int8_t>(current_c);
+
   // به‌روزرسانی موقعیت mover
   mover.row = current_r;
   mover.col = current_c;
@@ -300,21 +303,62 @@ void Board::undoMove(const AppliedMoveInfo& move_info) {
   }
 }
 
-std::vector<Move> Board::generateLegalMoves(PlayerID player) const {
-  std::vector<Move> legal_moves;
-  legal_moves.reserve(PIECES_PER_PLAYER);
-
+void Board::generateLegalMoves(PlayerID player, MoveList& moves) const {
+  moves.clear();
   for (int i = 1; i <= PIECES_PER_PLAYER; ++i) {
     Move m = Move::fromRelativeIndex(i, player);
     int global_id = m.id;
     if (global_id < 0 || global_id >= NUM_PIECES) continue;
     if (!pieces[global_id].isFinished()) {
       if (isMoveValid(m, player)) {
-        legal_moves.emplace_back(m);
+        moves.push_back(m);
       }
     }
   }
-  return legal_moves;
+}
+
+void Board::generateCaptureMoves(PlayerID player, MoveList& moves) const {
+  moves.clear();
+  for (int i = 1; i <= PIECES_PER_PLAYER; ++i) {
+    Move m = Move::fromRelativeIndex(i, player);
+    const int global_id = m.id;
+    if (global_id < 0 || global_id >= NUM_PIECES) continue;
+
+    const auto& piece = pieces[global_id];
+    if (piece.isFinished()) continue;
+
+    bool is_potential_capture = false;
+    const bool is_forward = (piece.status == PieceStatus::ON_BOARD_FORWARD);
+    const int power = piece.getCurrentMovePower();
+    const int dr =
+        (piece.owner == PlayerID::PLAYER_2) ? (is_forward ? 1 : -1) : 0;
+    const int dc =
+        (piece.owner == PlayerID::PLAYER_1) ? (is_forward ? 1 : -1) : 0;
+
+    int r = piece.row;
+    int c = piece.col;
+
+    for (int step = 0; step < power; ++step) {
+      r += dr;
+      c += dc;
+      if (!isPositionValid(r, c)) break;
+
+      if (cell_ref(r, c) != EMPTY_CELL) {
+        const int opponent_id = cell_ref(r, c);
+        if (opponent_id >= 0 && opponent_id < NUM_PIECES &&
+            pieces[opponent_id].owner != player) {
+          is_potential_capture = true;
+        }
+        break;
+      }
+    }
+
+    if (is_potential_capture) {
+      if (isMoveValid(m, player)) {
+        moves.push_back(m);
+      }
+    }
+  }
 }
 
 bool Board::isMoveValid(const Move& move, PlayerID player) const {

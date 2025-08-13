@@ -3,10 +3,10 @@
 #include <array>
 #include <cstdint>
 #include <optional>
-#include <vector>
 
 #include "Constants.h"
 #include "Move.h"
+#include "MoveList.h"
 #include "Piece.h"
 
 namespace SquadroAI {
@@ -27,6 +27,8 @@ class Board {
     uint8_t mover_id;
     int8_t start_row;
     int8_t start_col;
+    int8_t dest_row;
+    int8_t dest_col;
     uint8_t original_mover_status;
     uint8_t captured_count = 0;
     std::array<CapturedInfo, MAX_POSSIBLE_CAPTURES> captures;
@@ -41,7 +43,10 @@ class Board {
   void undoMove(const AppliedMoveInfo& move_info);
 
   // تولید حرکات قانونی برای یک بازیکن
-  std::vector<Move> generateLegalMoves(PlayerID player) const;
+  void generateLegalMoves(PlayerID player, MoveList& moves) const;
+
+  // تولید فقط حرکاتی که منجر به برخورد (capture) می‌شوند
+  void generateCaptureMoves(PlayerID player, MoveList& moves) const;
 
   // بررسی اینکه آیا یک حرکت در وضعیت فعلی معتبر است یا نه
   bool isMoveValid(const Move& move, PlayerID player) const;

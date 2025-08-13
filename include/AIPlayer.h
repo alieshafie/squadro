@@ -4,6 +4,7 @@
 
 #include "GameState.h"
 #include "Move.h"
+#include "MoveList.h"
 #include "TranspositionTable.h"
 
 namespace SquadroAI {
@@ -32,7 +33,8 @@ class AIPlayer {
                 bool maximizing_player, Move* best_move = nullptr);
 
   // Quiescence search to handle tactical positions
-  int quiesce(GameState& state, int alpha, int beta, int depth_left);
+  int quiesce(GameState& state, int alpha, int beta, bool maximizing_player,
+              int depth_left);
 
   PlayerID ai_player_id;                   // هویت این AI (بازیکن ۱ یا ۲)
   TranspositionTable transposition_table;  // جدول انتقال اختصاصی این AI
@@ -55,11 +57,10 @@ class AIPlayer {
   long long nodes_visited;
 
   // Helper methods for move ordering
-  void updateHistoryScore(const Move& move, int depth);
+  void updateHistoryScore(const Board::AppliedMoveInfo& move_info, int depth);
   void updateKillerMove(const Move& move, int ply);
   int getMoveScore(const Move& move, int ply, const GameState& state) const;
-  void sortMoves(std::vector<Move>& moves, int ply,
-                 const GameState& state) const;
+  void sortMoves(MoveList& moves, int ply, const GameState& state) const;
 };
 
 }  // namespace SquadroAI
