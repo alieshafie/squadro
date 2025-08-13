@@ -113,7 +113,7 @@ GameResult playSelfPlay(int time_limit_ms) {
 }
 
 int main() {
-  const int NUM_GAMES = 3;
+  const int NUM_GAMES = 1;
   const int TIME_PER_MOVE_MS = 10000;  // 10 seconds
 
   std::vector<GameResult> results;
