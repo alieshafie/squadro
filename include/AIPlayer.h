@@ -18,6 +18,14 @@ class AIPlayer {
   // می‌کند.
   Move findBestMove(const GameState& initial_state, int time_limit_ms);
 
+  // Getter methods for statistics
+  long long getNodesVisited() const { return nodes_visited; }
+  long long getTTHits() const { return transposition_table.hits; }
+  void resetStatistics() {
+    nodes_visited = 0;
+    transposition_table.hits = 0;
+  }
+
  private:
   // الگوریتم اصلی جستجوی Minimax با هرس آلفا-بتا و جدول انتقال
   int alphaBeta(GameState& state, int depth, int alpha, int beta,

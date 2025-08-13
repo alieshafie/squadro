@@ -111,8 +111,8 @@ int main(int argc, char *argv[]) {
 
         // FIXED: Using 10-second time limit with a 500ms safety margin.
         std::chrono::milliseconds time_for_move(9500);
-        Move best_move =
-            ai_player.findBestMove(current_game_state, time_for_move.count());
+        Move best_move = ai_player.findBestMove(
+            current_game_state, static_cast<int>(time_for_move.count()));
 
         if (best_move.id != -1) {  // Compare with -1 directly since NULL_MOVE
                                    // is inside the function scope

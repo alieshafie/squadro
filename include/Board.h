@@ -64,9 +64,11 @@ class Board {
   // **بهینه‌سازی کلیدی شماره ۲: Single Source of Truth**
   std::array<Piece, NUM_PIECES> pieces;
 
-  inline Cell& cell_ref(int r, int c) { return grid[r * NUM_COLS + c]; }
+  inline Cell& cell_ref(int r, int c) {
+    return grid[static_cast<size_t>(r * NUM_COLS + c)];
+  }
   inline const Cell& cell_ref(int r, int c) const {
-    return grid[r * NUM_COLS + c];
+    return grid[static_cast<size_t>(r * NUM_COLS + c)];
   }
 
   inline bool isPositionValid(int row, int col) const {
