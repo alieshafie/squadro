@@ -38,6 +38,10 @@ GameResult playSelfPlay(int time_limit_ms) {
   // Reset statistics at the start of each game
   player1.resetStatistics();
   player2.resetStatistics();
+  long long cumulative_nodes_p1 = 0;
+  long long cumulative_nodes_p2 = 0;
+  long long cumulative_tt_hits_p1 = 0;
+  long long cumulative_tt_hits_p2 = 0;
 
   while (!state.isGameOver()) {
     PlayerID current_player_id = state.getCurrentPlayer();
@@ -56,16 +60,20 @@ GameResult playSelfPlay(int time_limit_ms) {
     if (current_player_id == PlayerID::PLAYER_1) {
       total_time_p1 += time_ms;
       moves_p1++;
+      cumulative_nodes_p1 += player1.getNodesVisited();
+      cumulative_tt_hits_p1 += player1.getTTHits();
     } else {
       total_time_p2 += time_ms;
       moves_p2++;
+      cumulative_nodes_p2 += player2.getNodesVisited();
+      cumulative_tt_hits_p2 += player2.getTTHits();
     }
 
     std::cout << "Player "
               << (current_player_id == PlayerID::PLAYER_1 ? "1" : "2")
               << " move time: " << duration.count() << "ms" << std::endl;
 
-    state = state.createNextState(best_move);
+    state.applyMove(best_move);
     total_moves++;
 
     // Print board state
@@ -78,11 +86,11 @@ GameResult playSelfPlay(int time_limit_ms) {
             << (winner == PlayerID::PLAYER_1 ? "1" : "2") << std::endl;
   std::cout << "Total moves: " << total_moves << std::endl;
 
-  // Collect final statistics
-  long long nodes_p1 = player1.getNodesVisited();
-  long long nodes_p2 = player2.getNodesVisited();
-  long long tt_hits_p1 = player1.getTTHits();
-  long long tt_hits_p2 = player2.getTTHits();
+  // Collect final statistics from our cumulative counters
+  long long& nodes_p1 = cumulative_nodes_p1;
+  long long& nodes_p2 = cumulative_nodes_p2;
+  long long& tt_hits_p1 = cumulative_tt_hits_p1;
+  long long& tt_hits_p2 = cumulative_tt_hits_p2;
 
   // Calculate averages
   double avg_nps_p1 =
@@ -114,7 +122,7 @@ GameResult playSelfPlay(int time_limit_ms) {
 
 int main() {
   const int NUM_GAMES = 1;
-  const int TIME_PER_MOVE_MS = 10000;  // 10 seconds
+  const int TIME_PER_MOVE_MS = 1000;  // 1 second
 
   std::vector<GameResult> results;
 

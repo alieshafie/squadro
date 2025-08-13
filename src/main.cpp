@@ -125,8 +125,8 @@ int main(int argc, char *argv[]) {
 
           if (network_manager.sendMoveToGui(relative_idx_to_send)) {
             std::cout << "Move successfully sent to GUI." << std::endl;
-            // FIXED: Create a new state from the move
-            current_game_state = current_game_state.createNextState(best_move);
+            // Apply the move to our local state
+            current_game_state.applyMove(best_move);
             std::cout << "Local game state updated." << std::endl;
           } else {
             std::cerr << "FATAL ERROR: Failed to send move to GUI. Terminating."
@@ -164,8 +164,8 @@ int main(int argc, char *argv[]) {
                   << g_last_opponent_pawn_move_idx << " received. Applying "
                   << opponent_move.to_string() << std::endl;
 
-        // FIXED: Create new state from the opponent's move
-        current_game_state = current_game_state.createNextState(opponent_move);
+        // Apply the opponent's move to our local state
+        current_game_state.applyMove(opponent_move);
         std::cout << "Opponent's move applied to local state." << std::endl;
         g_opponent_has_moved = false;
         lock.unlock();

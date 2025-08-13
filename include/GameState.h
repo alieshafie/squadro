@@ -1,10 +1,8 @@
 #pragma once
 
-#include <memory>  // برای سادگی در پیاده‌سازی اولیه، بعدا می‌توان بهینه کرد
-#include <vector>
-
 #include "Board.h"
 #include "Constants.h"
+#include "MoveList.h"
 #include "Move.h"
 
 namespace SquadroAI {
@@ -15,15 +13,15 @@ class GameState {
   // می‌دهد
   GameState();
 
-  // این تابع یک وضعیت جدید بر اساس حرکت داده شده ایجاد
-  // می‌کند
-  // این روش برای الگوریتم‌های جستجو بسیار
-  // تمیز و مناسب است
-  GameState createNextState(const Move& move) const;
+  // Applies a move to the current state, mutating it.
+  // Returns the information needed to undo the move.
+  std::optional<Board::AppliedMoveInfo> applyMove(const Move& move);
 
-  // لیستی از تمام حرکات قانونی برای بازیکن فعلی را
-  // برمی‌گرداند
-  std::vector<Move> generateLegalMoves() const;
+  // Reverts a move, restoring the previous state.
+  void undoMove(const Board::AppliedMoveInfo& move_info);
+
+  // Fills the provided MoveList with all legal moves for the current player.
+  void generateLegalMoves(MoveList& moves) const;
 
   // بررسی می‌کند که آیا بازی تمام شده است یا
   // نه
