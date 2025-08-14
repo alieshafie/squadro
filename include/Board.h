@@ -45,7 +45,8 @@ class Board {
   // تولید حرکات قانونی برای یک بازیکن
   void generateLegalMoves(PlayerID player, MoveList& moves) const;
 
-  // تولید فقط حرکاتی که منجر به برخورد (capture) می‌شوند
+  // تولید فقط حرکاتی که منجر به برخورد (capture)
+  // می‌شوند
   void generateCaptureMoves(PlayerID player, MoveList& moves) const;
 
   // بررسی اینکه آیا یک حرکت در وضعیت فعلی معتبر است یا نه
@@ -59,6 +60,18 @@ class Board {
   const std::array<Piece, NUM_PIECES>& getAllPieces() const;
 
  private:
+  struct MoveResult {
+    bool is_valid = false;
+    int8_t dest_row = -1;
+    int8_t dest_col = -1;
+    PieceStatus final_status = PieceStatus::ON_BOARD_FORWARD;
+    std::array<CapturedInfo, MAX_POSSIBLE_CAPTURES> captures;
+    uint8_t captured_count = 0;
+  };
+
+  // Helper function to calculate the outcome of a move without changing state
+  MoveResult calculateMoveResult(const Piece& mover) const;
+
   // این تابع فقط یک بار در سازنده فراخوانی
   // می‌شود
   void initializeBoard();

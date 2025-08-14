@@ -46,10 +46,9 @@ Move AIPlayer::findBestMove(const GameState& initial_state, int time_limit_ms) {
     int score = alphaBeta(root_state, max_depth, LOSS_SCORE - 1, WIN_SCORE + 1,
                           true, &root_best_move);
 
-    auto duration_ms =
-        std::chrono::duration_cast<std::chrono::milliseconds>(
-            std::chrono::steady_clock::now() - start_time)
-            .count();
+    auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                           std::chrono::steady_clock::now() - start_time)
+                           .count();
 
     if (time_is_up) {
       double nps = (nodes_visited * 1000.0) /
@@ -73,7 +72,7 @@ Move AIPlayer::findBestMove(const GameState& initial_state, int time_limit_ms) {
               << ". Move: piece " << best_move_overall.id
               << ". Nodes: " << nodes_visited << " (" << static_cast<int>(nps)
               << " N/s)"
-              << ". TT Hits: " << transposition_table.hits << std::endl;
+              << ". Player TT Hits: " << transposition_table.hits << std::endl;
 
     if (abs(score) >= WIN_SCORE - max_depth) {
       std::cout << "Found a winning/losing move. Halting search." << std::endl;
@@ -221,7 +220,7 @@ int AIPlayer::alphaBeta(GameState& state, int depth, int alpha, int beta,
 }
 
 void AIPlayer::updateHistoryScore(const Board::AppliedMoveInfo& move_info,
-                                int depth) {
+                                  int depth) {
   int piece_idx = move_info.mover_id;
   if (piece_idx >= 0 && piece_idx < MAX_PIECE_IDX) {
     int pos_idx = move_info.dest_row * NUM_COLS + move_info.dest_col;
@@ -266,15 +265,13 @@ void AIPlayer::sortMoves(MoveList& moves, int ply,
                          const GameState& state) const {
   uint64_t key =
       GameStateHasher::computeHash(state.getBoard(), state.getCurrentPlayer());
-  Move tt_best_move;
+  Move tt_best_move;  // Default constructor sets id to -1
   int dummy_score;
-  const bool tt_hit =
-      transposition_table.probe(key, ply, dummy_score, tt_best_move);
+  transposition_table.probe(key, ply, dummy_score, tt_best_move);
 
   std::sort(moves.begin(), moves.end(),
-            [this, ply, &state, tt_hit, &tt_best_move](const Move& a,
-                                                       const Move& b) {
-              if (tt_hit) {
+            [this, ply, &state, &tt_best_move](const Move& a, const Move& b) {
+              if (tt_best_move.id != -1) {
                 if (a.id == tt_best_move.id) return true;
                 if (b.id == tt_best_move.id) return false;
               }
@@ -323,8 +320,7 @@ int AIPlayer::quiesce(GameState& state, int alpha, int beta,
     if (!move_info) continue;
 
     nodes_visited++;
-    int score =
-        quiesce(state, alpha, beta, !maximizing_player, depth_left - 1);
+    int score = quiesce(state, alpha, beta, !maximizing_player, depth_left - 1);
     state.undoMove(*move_info);
 
     if (maximizing_player) {

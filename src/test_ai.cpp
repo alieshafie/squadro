@@ -42,6 +42,8 @@ GameResult playSelfPlay(int time_limit_ms) {
   long long cumulative_nodes_p2 = 0;
   long long cumulative_tt_hits_p1 = 0;
   long long cumulative_tt_hits_p2 = 0;
+  long long last_tt_hits_p1 = 0;
+  long long last_tt_hits_p2 = 0;
 
   while (!state.isGameOver()) {
     PlayerID current_player_id = state.getCurrentPlayer();
@@ -61,12 +63,16 @@ GameResult playSelfPlay(int time_limit_ms) {
       total_time_p1 += time_ms;
       moves_p1++;
       cumulative_nodes_p1 += player1.getNodesVisited();
-      cumulative_tt_hits_p1 += player1.getTTHits();
+      long long current_hits = player1.getTTHits();
+      cumulative_tt_hits_p1 += (current_hits - last_tt_hits_p1);
+      last_tt_hits_p1 = current_hits;
     } else {
       total_time_p2 += time_ms;
       moves_p2++;
       cumulative_nodes_p2 += player2.getNodesVisited();
-      cumulative_tt_hits_p2 += player2.getTTHits();
+      long long current_hits = player2.getTTHits();
+      cumulative_tt_hits_p2 += (current_hits - last_tt_hits_p2);
+      last_tt_hits_p2 = current_hits;
     }
 
     std::cout << "Player "
@@ -76,9 +82,9 @@ GameResult playSelfPlay(int time_limit_ms) {
     state.applyMove(best_move);
     total_moves++;
 
-    // Print board state
-    state.getBoard().printBoard();
-    std::cout << "----------------------------------------" << std::endl;
+    // Print board state (commented out for performance benchmarking)
+    // state.getBoard().printBoard();
+    // std::cout << "----------------------------------------" << std::endl;
   }
 
   PlayerID winner = state.getWinner();

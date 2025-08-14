@@ -9,8 +9,8 @@ TranspositionTable::TranspositionTable(size_t size_mb) {
 }
 
 void TranspositionTable::clear() {
-  // به جای ساختن دوباره، فقط ورودی‌ها را پاک می‌کنیم که
-  // سریع‌تر است.
+  // به جای ساختن دوباره، فقط ورودی‌ها را پاک می‌کنیم
+  // که سریع‌تر است.
   std::fill(table.begin(), table.end(), TTEntry());
   hits = 0;
   probes = 0;
@@ -37,17 +37,26 @@ bool TranspositionTable::probe(uint64_t key, int depth, int& score,
   size_t index = key % table_size;
   const TTEntry& entry = table[index];
 
-  // ۱. آیا کلید Zobrist مطابقت دارد؟ (برای جلوگیری از collision)
-  // ۲. آیا عمق ذخیره شده برای نیاز فعلی ما کافی است؟
-  if (entry.zobrist_key == key && entry.depth >= depth) {
-    score = entry.score;
+  if (entry.zobrist_key == key) {
+    // The key matches, so this entry is for the current board state.
+    // We can always use the best_move for move ordering.
     best_move = entry.best_move;
-    hits++;
-    return true;
+
+    // Now, check if the stored depth is sufficient for a score cutoff.
+    if (entry.depth >= depth) {
+      // TODO: Add bound checks (alpha/beta) here for more precise cutoffs
+      score = entry.score;
+      hits++;
+      return true;  // We have a full hit, score can be used.
+    }
+
+    // Key matched, but depth was too shallow. The best_move is still useful
+    // for ordering, but we can't use the score.
+    return false;
   }
-  
-  // Return move for move ordering even if score can't be used
-  best_move = entry.best_move;
+
+  // The key does not match (hash collision). Do not use any information from
+  // this entry.
   return false;
 }
 

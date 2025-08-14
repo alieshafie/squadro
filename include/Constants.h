@@ -18,10 +18,8 @@ constexpr int BCK_POWERS[NUM_PIECES] = {3, 1, 2, 1, 3, 1, 3, 2, 3, 1};
 constexpr int WIN_SCORE = 100000;
 constexpr int LOSS_SCORE = -100000;
 constexpr int DRAW_SCORE = 0;
-constexpr int PIECE_COMPLETED_WEIGHT = 5000;
+constexpr int PIECE_COMPLETED_WEIGHT = 2500;
 constexpr int PIECE_PROGRESS_WEIGHT = 10;
-constexpr int PIECE_MATERIAL_WEIGHT = 100;  // ارزش داشتن مهره روی تخته
-constexpr int MOBILITY_WEIGHT = 5;
 
 // سایر ثابت‌های مورد نیاز
 //...

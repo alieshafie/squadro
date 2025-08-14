@@ -7,8 +7,8 @@
 namespace SquadroAI {
 
 GameState::GameState()
-    : board(),  // سازنده پیش‌فرض Board فراخوانی می‌شود
-                // و تخته را مقداردهی می‌کند
+    : board(),  // سازنده پیش‌فرض Board فراخوانی
+                // می‌شود و تخته را مقداردهی می‌کند
       currentPlayer(PlayerID::PLAYER_1),
       winner(PlayerID::NONE),
       turnCount(0) {}
