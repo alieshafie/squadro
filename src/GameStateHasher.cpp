@@ -44,7 +44,7 @@ void GameStateHasher::initialize() {
 }
 
 uint64_t GameStateHasher::computeHash(const Board& board,
-                                    PlayerID currentPlayer) {
+                                      PlayerID currentPlayer) {
   if (!is_initialized) {
     initialize();  // Auto-initialize if needed
   }
@@ -56,9 +56,9 @@ uint64_t GameStateHasher::computeHash(const Board& board,
   for (int piece_id = 0; piece_id < NUM_PIECES; ++piece_id) {
     const auto& piece = pieces[piece_id];
 
-    // Only hash pieces that are on the board
-    if (piece.row >= 0 && piece.row < NUM_ROWS && piece.col >= 0 &&
-        piece.col < NUM_COLS) {
+    // Only hash pieces that are actually on the board and not finished.
+    if (!piece.isFinished() && piece.row >= 0 && piece.row < NUM_ROWS &&
+        piece.col >= 0 && piece.col < NUM_COLS) {
       hash ^= piece_hashes[piece_id][piece.row][piece.col];
 
       // Hash the piece's status/direction

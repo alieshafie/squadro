@@ -46,10 +46,10 @@ add_library(squadro_ai_lib STATIC
     src/AIPlayer.cpp
     src/Board.cpp
     src/GameState.cpp
-    src/GameStateHasher.cpp # اگر پیاده‌سازی دارید
+    src/GameStateHasher.cpp
     src/Heuristics.cpp
     src/NetworkManager.cpp
-    src/TranspositionTable.cpp # اگر پیاده‌سازی دارید
+    src/TranspositionTable.cpp
 )
 
 # تعریف فایل اجرایی اصلی
@@ -103,6 +103,15 @@ elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
     else()
         target_compile_options(squadro_ai_lib INTERFACE -g -O0)
         target_compile_options(SquadroAI_App INTERFACE -g -O0)
+    endif()
+elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    message(STATUS "Configuring for Release with Debug Info build")
+    if(MSVC)
+        target_compile_options(squadro_ai_lib INTERFACE /Zi /O2 /Ob2 /DNDEBUG)
+        target_compile_options(SquadroAI_App INTERFACE /Zi /O2 /Ob2 /DNDEBUG)
+    else()
+        target_compile_options(squadro_ai_lib INTERFACE -g -O2 -DNDEBUG)
+        target_compile_options(SquadroAI_App INTERFACE -g -O2 -DNDEBUG)
     endif()
 endif()
 

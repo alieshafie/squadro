@@ -70,7 +70,10 @@ void SquadroAI::NetworkManager::startListeningForOpponentMoves(
           return;
         }
         std::cout << "Received move: " << move_idx << std::endl;
-        on_opponent_move_received(move_idx);
+        {
+          std::lock_guard<std::mutex> lock(m_callback_mutex);
+          on_opponent_move_received(move_idx);
+        }
         res.status = 200;
         res.set_content("OK", "text/plain");
       } else {

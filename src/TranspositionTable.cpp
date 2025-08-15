@@ -31,33 +31,19 @@ void TranspositionTable::store(uint64_t key, int depth, int score,
   }
 }
 
-bool TranspositionTable::probe(uint64_t key, int depth, int& score,
-                               Move& best_move) const {
+const TTEntry* TranspositionTable::probe(uint64_t key) const {
   probes++;
   size_t index = key % table_size;
   const TTEntry& entry = table[index];
 
+  // If the zobrist key matches, the entry is for the correct position.
   if (entry.zobrist_key == key) {
-    // The key matches, so this entry is for the current board state.
-    // We can always use the best_move for move ordering.
-    best_move = entry.best_move;
-
-    // Now, check if the stored depth is sufficient for a score cutoff.
-    if (entry.depth >= depth) {
-      // TODO: Add bound checks (alpha/beta) here for more precise cutoffs
-      score = entry.score;
-      hits++;
-      return true;  // We have a full hit, score can be used.
-    }
-
-    // Key matched, but depth was too shallow. The best_move is still useful
-    // for ordering, but we can't use the score.
-    return false;
+    hits++;
+    return &entry;
   }
 
-  // The key does not match (hash collision). Do not use any information from
-  // this entry.
-  return false;
+  // The key does not match (hash collision) or the entry is empty.
+  return nullptr;
 }
 
 }  // namespace SquadroAI

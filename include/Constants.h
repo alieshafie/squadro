@@ -18,8 +18,27 @@ constexpr int BCK_POWERS[NUM_PIECES] = {3, 1, 2, 1, 3, 1, 3, 2, 3, 1};
 constexpr int WIN_SCORE = 100000;
 constexpr int LOSS_SCORE = -100000;
 constexpr int DRAW_SCORE = 0;
-constexpr int PIECE_COMPLETED_WEIGHT = 2500;
-constexpr int PIECE_PROGRESS_WEIGHT = 10;
+// Score for a piece that has successfully returned to its base
+constexpr int PIECE_COMPLETED_SCORE = 2500;
+
+// Positional bonus based on how far a piece has traveled.
+// Index represents progress (0-12). 0=start, 6=turnaround, 12=finish.
+// The scores are non-linear, rewarding progress near the end of the track more.
+constexpr int PIECE_PROGRESS_SCORE[13] = {
+    0,    // Progress 0 (At base)
+    5,    // Progress 1
+    10,   // Progress 2
+    20,   // Progress 3
+    35,   // Progress 4
+    55,   // Progress 5
+    80,   // Progress 6 (Turnaround point)
+    110,  // Progress 7 (First step back)
+    145,  // Progress 8
+    185,  // Progress 9
+    230,  // Progress 10
+    280,  // Progress 11
+    350   // Progress 12 (One step away from finishing)
+};
 
 // سایر ثابت‌های مورد نیاز
 //...

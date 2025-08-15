@@ -32,9 +32,10 @@ class TranspositionTable {
   void store(uint64_t key, int depth, int score, EntryType type,
              const Move& best_move);
 
-  // جستجو برای یک ورودی در جدول. اگر پیدا شد true برمی‌گرداند و مقادیر را
-  // پر می‌کند
-  bool probe(uint64_t key, int depth, int& score, Move& best_move) const;
+  // Probes the table for an entry.
+  // Returns a pointer to the entry if found and valid, otherwise nullptr.
+  // This is more efficient than returning by value and avoids bool return.
+  const TTEntry* probe(uint64_t key) const;
 
   // پاک کردن جدول (مثلا برای شروع یک جستجوی جدید از ریشه)
   void clear();

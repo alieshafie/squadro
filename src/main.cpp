@@ -13,7 +13,6 @@
 #include "Constants.h"
 #include "GameState.h"
 #include "GameStateHasher.h"
-#include "Heuristics.h"
 #include "Move.h"
 #include "NetworkManager.h"
 #include "Piece.h"
@@ -87,8 +86,8 @@ int main(int argc, char *argv[]) {
   std::cout << "Registered as Player " << my_player_num_arg << std::endl;
 
   try {
-    GameState current_game_state;  // Initializes to starting state
-    AIPlayer ai_player(my_ai_player_id);
+    GameState current_game_state;             // Initializes to starting state
+    AIPlayer ai_player(my_ai_player_id, 64);  // 64MB TT
     NetworkManager network_manager(gui_ip_arg, my_send_to_gui_port, "0.0.0.0",
                                    my_listen_for_reply_port);
 

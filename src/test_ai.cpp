@@ -24,8 +24,8 @@ struct GameResult {
 
 GameResult playSelfPlay(int time_limit_ms) {
   GameState state;
-  AIPlayer player1(PlayerID::PLAYER_1);
-  AIPlayer player2(PlayerID::PLAYER_2);
+  AIPlayer player1(PlayerID::PLAYER_1, 64);  // 64MB TT
+  AIPlayer player2(PlayerID::PLAYER_2, 64);  // 64MB TT
 
   int total_moves = 0;
   int moves_p1 = 0, moves_p2 = 0;
@@ -131,10 +131,17 @@ int main() {
   const int TIME_PER_MOVE_MS = 1000;  // 1 second
 
   std::vector<GameResult> results;
-
-  for (int i = 0; i < NUM_GAMES; i++) {
-    std::cout << "\n=== Starting Game " << (i + 1) << " ===" << std::endl;
-    results.push_back(playSelfPlay(TIME_PER_MOVE_MS));
+  try {
+    for (int i = 0; i < NUM_GAMES; i++) {
+      std::cout << "\n=== Starting Game " << (i + 1) << " ===" << std::endl;
+      results.push_back(playSelfPlay(TIME_PER_MOVE_MS));
+    }
+  } catch (const std::exception& e) {
+    std::cerr << "An unhandled exception occurred: " << e.what() << std::endl;
+    return 1;
+  } catch (...) {
+    std::cerr << "An unknown unhandled exception occurred." << std::endl;
+    return 1;
   }
 
   // Calculate comprehensive summary statistics

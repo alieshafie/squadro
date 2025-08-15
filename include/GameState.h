@@ -2,8 +2,8 @@
 
 #include "Board.h"
 #include "Constants.h"
-#include "MoveList.h"
 #include "Move.h"
+#include "MoveList.h"
 
 namespace SquadroAI {
 

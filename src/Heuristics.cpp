@@ -1,72 +1,49 @@
 #include "Heuristics.h"
 
-#include "GameState.h"
+#include "GameState.h"  // Needs the full definition of GameState
 
 namespace SquadroAI {
 
-int Heuristics::evaluate(const GameState& state, PlayerID ai_player_id) {
-  // --- 1. بررسی حالت‌های پایانی (مهم‌ترین بخش)
-  // ---
+int Heuristics::evaluate(const GameState& state, PlayerID perspective_player) {
   if (state.isGameOver()) {
-    if (state.getWinner() == ai_player_id) {
-      return WIN_SCORE;
-    } else if (state.getWinner() == PlayerID::NONE ||
-               state.getWinner() == PlayerID::DRAW) {
-      // در Squadro تساوی تعریف نشده مگر با قوانین خانه
-      return DRAW_SCORE;
-    } else {
-      return LOSS_SCORE;
-    }
+    PlayerID winner = state.getWinner();
+    if (winner == perspective_player) return WIN_SCORE;
+    if (winner == PlayerID::NONE || winner == PlayerID::DRAW) return DRAW_SCORE;
+    return LOSS_SCORE;
   }
 
   int my_score = 0;
   int opponent_score = 0;
-
-  PlayerID opponent_id = (ai_player_id == PlayerID::PLAYER_1)
-                             ? PlayerID::PLAYER_2
-                             : PlayerID::PLAYER_1;
-
   const auto& pieces = state.getBoard().getAllPieces();
 
-  // --- 2. محاسبه امتیاز بر اساس پیشرفت و مهره‌های تمام شده
-  // ---
   for (const auto& piece : pieces) {
-    int piece_score = 0;
+    if (piece.owner == PlayerID::NONE) continue;
 
-    // الف) امتیاز برای تمام کردن مهره
+    int piece_score = 0;
     if (piece.isFinished()) {
-      piece_score += PIECE_COMPLETED_WEIGHT;
+      piece_score += PIECE_COMPLETED_SCORE;
     } else {
-      // ب) امتیاز برای پیشرفت در مسیر
       int progress = 0;
       if (piece.owner == PlayerID::PLAYER_1) {
-        // مسیر بازیکن ۱: ستون 0 -> 6 (پیشروی)، ستون 6 -> 0 (بازگشت)
-        if (piece.status == PieceStatus::ON_BOARD_FORWARD) {
-          progress = piece.col;  // 0 to 6
-        } else {                 // ON_BOARD_BACKWARD
-          // پیشرفت کل: 6 برای رفت + (6 - col) برای برگشت
-          progress = (NUM_COLS - 1) + ((NUM_COLS - 1) - piece.col);
-        }
+        progress = (piece.status == PieceStatus::ON_BOARD_FORWARD)
+                       ? piece.col
+                       : (NUM_COLS - 1) + ((NUM_COLS - 1) - piece.col);
       } else {  // Player 2
-        // مسیر بازیکن ۲: سطر 0 -> 6 (پیشروی)، سطر 6 -> 0 (بازگشت)
-        if (piece.status == PieceStatus::ON_BOARD_FORWARD) {
-          progress = piece.row;  // 0 to 6
-        } else {                 // ON_BOARD_BACKWARD
-          progress = (NUM_ROWS - 1) + ((NUM_ROWS - 1) - piece.row);
-        }
+        progress = (piece.status == PieceStatus::ON_BOARD_FORWARD)
+                       ? piece.row
+                       : (NUM_ROWS - 1) + ((NUM_ROWS - 1) - piece.row);
       }
-      piece_score += progress * PIECE_PROGRESS_WEIGHT;
+      if (progress >= 0 && progress < 13) {
+        piece_score += PIECE_PROGRESS_SCORE[progress];
+      }
     }
 
-    // اضافه کردن امتیاز به بازیکن مربوطه
-    if (piece.owner == ai_player_id) {
+    if (piece.owner == perspective_player) {
       my_score += piece_score;
     } else {
       opponent_score += piece_score;
     }
   }
-
-  // امتیاز نهایی تفاوت امتیاز ما و حریف است
   return my_score - opponent_score;
 }
 

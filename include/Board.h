@@ -52,6 +52,10 @@ class Board {
   // بررسی اینکه آیا یک حرکت در وضعیت فعلی معتبر است یا نه
   bool isMoveValid(const Move& move, PlayerID player) const;
 
+  // Checks if a move would result in at least one capture, without performing
+  // it.
+  bool isCapture(const Move& move, PlayerID player) const;
+
   void printBoard() const;  // برای دیباگ
 
   // توابع Getter برای دسترسی ایمن و فقط خواندنی از خارج (مثلا از Heuristics)
