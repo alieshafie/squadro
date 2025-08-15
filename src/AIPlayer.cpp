@@ -19,6 +19,10 @@ AIPlayer::AIPlayer(PlayerID ai_id, size_t tt_size_mb)
 }
 
 Move AIPlayer::findBestMove(const GameState& initial_state, int time_limit_ms) {
+  if (initial_state.isGameOver()) {
+    return Move();  // Return a default, invalid move if the game is already
+                    // over.
+  }
   start_time = std::chrono::steady_clock::now();
   time_limit = time_limit_ms;
   time_is_up = false;
@@ -28,22 +32,39 @@ Move AIPlayer::findBestMove(const GameState& initial_state, int time_limit_ms) {
   Move best_move_overall(-1);
   int max_depth = 1;
 
+  // This move will hold the best move found in the current iteration.
+  Move best_move_this_iteration(-1);
+
   while (true) {
     GameState root_state = initial_state;
-    Move root_best_move;
+    // Pass the same move object to be updated by the search
     int score = alphaBeta(root_state, max_depth, LOSS_SCORE - 1, WIN_SCORE + 1,
-                          true, &root_best_move);
+                          true, &best_move_this_iteration);
 
+    // After the search, check if time is up.
+    // Crucially, we check *after* the search returns, so
+    // best_move_this_iteration might have been updated.
     if (time_is_up) {
-      std::cout << "Time is up, returning best move from previous depth."
-                << std::endl;
+      std::cout << "Time is up." << std::endl;
+      // If the interrupted search found a better move, use it.
+      // Otherwise, we'll stick with the best move from the last fully completed
+      // depth.
+      if (best_move_this_iteration.id != -1) {
+        best_move_overall = best_move_this_iteration;
+      }
       break;
     }
 
-    best_move_overall = root_best_move;
-    std::cout << "Depth " << max_depth
-              << " finished. Best move: " << best_move_overall.to_string()
-              << " Score: " << score << std::endl;
+    // If the search completed without timeout, we trust its result.
+    if (best_move_this_iteration.id != -1) {
+      best_move_overall = best_move_this_iteration;
+      std::cout << "Depth " << max_depth
+                << " finished. Best move: " << best_move_overall.to_string()
+                << " Score: " << score << std::endl;
+    } else {
+      std::cout << "Depth " << max_depth
+                << " finished. No move found. Score: " << score << std::endl;
+    }
 
     if (abs(score) >= WIN_SCORE - max_depth) {
       std::cout << "Found winning move." << std::endl;
@@ -99,7 +120,9 @@ int AIPlayer::alphaBeta(GameState& state, int depth, int alpha, int beta,
     return Heuristics::evaluate(state, ai_player_id);
   }
 
-  Move best_local_move;
+  // Initialize best_local_move with the first legal move. This ensures that
+  // even if all moves fail high/low, we have at least one move to return.
+  Move best_local_move = legal_moves[0];
   int alpha_orig = alpha;
   EntryType entry_type = EntryType::UPPER_BOUND;
 
@@ -116,7 +139,11 @@ int AIPlayer::alphaBeta(GameState& state, int depth, int alpha, int beta,
       if (eval > max_eval) {
         max_eval = eval;
         best_local_move = move;
-        if (best_move) *best_move = move;
+        // Always update the root's best move pointer as soon as we find a
+        // better move.
+        if (best_move) {
+          *best_move = best_local_move;
+        }
       }
       alpha = std::max(alpha, eval);
       if (beta <= alpha) {
@@ -143,7 +170,11 @@ int AIPlayer::alphaBeta(GameState& state, int depth, int alpha, int beta,
       if (eval < min_eval) {
         min_eval = eval;
         best_local_move = move;
-        if (best_move) *best_move = move;
+        // Always update the root's best move pointer as soon as we find a
+        // better move.
+        if (best_move) {
+          *best_move = best_local_move;
+        }
       }
       beta = std::min(beta, eval);
       if (beta <= alpha) {

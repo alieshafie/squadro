@@ -42,8 +42,6 @@ GameResult playSelfPlay(int time_limit_ms) {
   long long cumulative_nodes_p2 = 0;
   long long cumulative_tt_hits_p1 = 0;
   long long cumulative_tt_hits_p2 = 0;
-  long long last_tt_hits_p1 = 0;
-  long long last_tt_hits_p2 = 0;
 
   while (!state.isGameOver()) {
     PlayerID current_player_id = state.getCurrentPlayer();
@@ -54,6 +52,11 @@ GameResult playSelfPlay(int time_limit_ms) {
     Move best_move = current_player.findBestMove(state, time_limit_ms);
     auto end = std::chrono::steady_clock::now();
 
+    if (best_move.id == -1) {
+      std::cout << "AI returned no valid move (game likely over)." << std::endl;
+      break;  // Exit the loop if no move is found
+    }
+
     // Calculate and track move time
     auto duration =
         std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
@@ -62,17 +65,15 @@ GameResult playSelfPlay(int time_limit_ms) {
     if (current_player_id == PlayerID::PLAYER_1) {
       total_time_p1 += time_ms;
       moves_p1++;
+      // getNodesVisited() returns the count for the last findBestMove call.
       cumulative_nodes_p1 += player1.getNodesVisited();
-      long long current_hits = player1.getTTHits();
-      cumulative_tt_hits_p1 += (current_hits - last_tt_hits_p1);
-      last_tt_hits_p1 = current_hits;
+      // getTTHits() is cumulative for the lifetime of the object.
+      cumulative_tt_hits_p1 = player1.getTTHits();
     } else {
       total_time_p2 += time_ms;
       moves_p2++;
       cumulative_nodes_p2 += player2.getNodesVisited();
-      long long current_hits = player2.getTTHits();
-      cumulative_tt_hits_p2 += (current_hits - last_tt_hits_p2);
-      last_tt_hits_p2 = current_hits;
+      cumulative_tt_hits_p2 = player2.getTTHits();
     }
 
     std::cout << "Player "
