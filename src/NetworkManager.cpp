@@ -20,14 +20,15 @@ SquadroAI::NetworkManager::~NetworkManager() {
 }
 
 bool SquadroAI::NetworkManager::sendMoveToGui(int pawn_to_move_idx) {
-  // Make GUI Client if donst made yet
+  // Make GUI Client if it doesn't exist yet, and configure it.
   if (!m_gui_client) {
     m_gui_client =
         std::make_unique<httplib::Client>(m_gui_ip, m_my_player_gui_port);
+    m_gui_client->set_keep_alive(true);
   }
 
   // Make Json File
-  std::string json = "{\"move\": \"" + std::to_string(pawn_to_move_idx) + "\"}";
+  std::string json = "{\"move\": " + std::to_string(pawn_to_move_idx) + "}";
 
   // send Json to GUI
   auto res = m_gui_client->Post("/", json, "application/json");
