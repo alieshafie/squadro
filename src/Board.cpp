@@ -58,20 +58,39 @@ Board::MoveResult Board::calculateMoveResult(const Piece& mover) const {
   const int dc =
       (mover.owner == PlayerID::PLAYER_1) ? (is_forward ? 1 : -1) : 0;
 
-  // Use a temporary grid for simulation to keep the function const
-  auto temp_grid = grid;
-  auto temp_cell_ref = [&temp_grid](int r, int c) -> Cell& {
-    return temp_grid[r * NUM_COLS + c];
-  };
-
+  // OPTIMIZATION: This function is now allocation-free. It simulates the move
+  // by calculating positions and using a small, stack-allocated array to track
+  // pieces that would be captured and moved during this simulation.
   int current_r = mover.row;
   int current_c = mover.col;
 
-  if (!isPositionValid(current_r, current_c)) {
-    return result;  // Invalid start, result.is_valid is false
+  // Simulated positions of pieces during the move validation.
+  std::array<int8_t, NUM_PIECES> sim_rows, sim_cols;
+  for (int i = 0; i < NUM_PIECES; ++i) {
+    sim_rows[i] = pieces[i].row;
+    sim_cols[i] = pieces[i].col;
   }
 
-  temp_cell_ref(current_r, current_c) = EMPTY_CELL;
+  // A helper lambda to check for collisions in our simulated reality.
+  auto is_cell_occupied_sim = [&](int r, int c) {
+    for (int i = 0; i < NUM_PIECES; ++i) {
+      // Skip the mover itself and any captured (moved) pieces.
+      if (i == mover.id || pieces[i].isFinished()) continue;
+      bool was_captured = false;
+      for (uint8_t k = 0; k < result.captured_count; ++k) {
+        if (result.captures[k].id == i) {
+          was_captured = true;
+          break;
+        }
+      }
+      if (was_captured) continue;
+
+      if (sim_rows[i] == r && sim_cols[i] == c) {
+        return i;  // Return ID of piece at the location
+      }
+    }
+    return EMPTY_CELL;
+  };
 
   for (int step = 0; step < power; ++step) {
     int next_r = current_r + dr;
@@ -87,29 +106,28 @@ Board::MoveResult Board::calculateMoveResult(const Piece& mover) const {
     current_r = next_r;
     current_c = next_c;
 
-    if (temp_cell_ref(current_r, current_c) != EMPTY_CELL) {
+    int occupant_id = is_cell_occupied_sim(current_r, current_c);
+    if (occupant_id != EMPTY_CELL) {
       // Collision chain logic
       while (isPositionValid(current_r, current_c) &&
-             temp_cell_ref(current_r, current_c) != EMPTY_CELL) {
-        const int opponent_id = temp_cell_ref(current_r, current_c);
-        if (opponent_id < 0 || opponent_id >= NUM_PIECES ||
-            pieces[opponent_id].owner == mover.owner) {
-          return result;  // Invalid move (ran into own piece or invalid ID)
+             (occupant_id = is_cell_occupied_sim(current_r, current_c)) !=
+                 EMPTY_CELL) {
+        if (pieces[occupant_id].owner == mover.owner) {
+          return result;  // Invalid move (ran into own piece)
         }
 
         if (result.captured_count >= MAX_POSSIBLE_CAPTURES) {
           return result;  // Too many captures, invalid
         }
 
-        const auto& opponent_piece = pieces[opponent_id];
+        const auto& opponent_piece = pieces[occupant_id];
         auto& ci = result.captures[result.captured_count++];
         ci.id = static_cast<uint8_t>(opponent_piece.id);
         ci.prev_row = static_cast<int8_t>(opponent_piece.row);
         ci.prev_col = static_cast<int8_t>(opponent_piece.col);
 
-        temp_cell_ref(ci.prev_row, ci.prev_col) = EMPTY_CELL;
-
-        int opponent_idx = opponent_id % PIECES_PER_PLAYER;
+        // Simulate the opponent's reset
+        int opponent_idx = opponent_piece.id % PIECES_PER_PLAYER;
         int reset_row, reset_col;
         if (opponent_piece.status == PieceStatus::ON_BOARD_FORWARD) {
           if (opponent_piece.owner == PlayerID::PLAYER_1) {
@@ -128,12 +146,15 @@ Board::MoveResult Board::calculateMoveResult(const Piece& mover) const {
             reset_col = opponent_idx + 1;
           }
         }
+        sim_rows[occupant_id] = reset_row;
+        sim_cols[occupant_id] = reset_col;
 
-        if (temp_cell_ref(reset_row, reset_col) != EMPTY_CELL &&
-            temp_cell_ref(reset_row, reset_col) != opponent_id) {
+        // Check if the reset location is blocked by another piece (not the one
+        // being reset)
+        int blocker_id = is_cell_occupied_sim(reset_row, reset_col);
+        if (blocker_id != EMPTY_CELL && blocker_id != occupant_id) {
           return result;  // Reset location is blocked
         }
-        temp_cell_ref(reset_row, reset_col) = opponent_id;
 
         int beyond_r = current_r + dr;
         int beyond_c = current_c + dc;
@@ -141,17 +162,17 @@ Board::MoveResult Board::calculateMoveResult(const Piece& mover) const {
           clamp_to_edge(beyond_r, beyond_c, dr, dc);
           current_r = beyond_r;
           current_c = beyond_c;
-          goto move_simulation_end;  // Break out of both loops
+          goto move_simulation_end;
         } else {
           current_r = beyond_r;
           current_c = beyond_c;
         }
       }
-      break;  // Collision ends the move
+      break;
     }
   }
 
-move_simulation_end:;
+move_simulation_end:
   result.dest_row = static_cast<int8_t>(current_r);
   result.dest_col = static_cast<int8_t>(current_c);
 
@@ -171,7 +192,8 @@ move_simulation_end:;
   }
 
   if (result.final_status != PieceStatus::FINISHED) {
-    if (temp_cell_ref(result.dest_row, result.dest_col) != EMPTY_CELL) {
+    // Use the simulation checker to see if the final destination is blocked
+    if (is_cell_occupied_sim(result.dest_row, result.dest_col) != EMPTY_CELL) {
       return result;  // Final destination is blocked
     }
   }
@@ -354,43 +376,36 @@ void Board::generateCaptureMoves(PlayerID player, MoveList& moves) const {
   moves.clear();
   for (int i = 1; i <= PIECES_PER_PLAYER; ++i) {
     Move m = Move::fromRelativeIndex(i, player);
-    // isCapture implicitly checks for validity by calling calculateMoveResult,
-    // so this is the only check we need.
-    if (isCapture(m, player)) {
+    // Call the unified properties function once.
+    MoveProperties props = getMoveProperties(m, player);
+    if (props.is_capture) {  // is_capture implies is_valid
       moves.push_back(m);
     }
   }
 }
 
-bool Board::isMoveValid(const Move& move, PlayerID player) const {
+Board::MoveProperties Board::getMoveProperties(const Move& move,
+                                               PlayerID player) const {
   if (move.id < 0 || move.id >= NUM_PIECES) {
-    return false;
+    return {};  // Default constructed: is_valid=false, is_capture=false
   }
-
   const int piece_id = move.id;
   const Piece& piece = pieces[piece_id];
 
   if (piece.owner != player || piece.isFinished()) {
-    return false;
+    return {};
   }
 
-  return calculateMoveResult(piece).is_valid;
+  MoveResult result = calculateMoveResult(piece);
+  return {result.is_valid, result.captured_count > 0};
+}
+
+bool Board::isMoveValid(const Move& move, PlayerID player) const {
+  return getMoveProperties(move, player).is_valid;
 }
 
 bool Board::isCapture(const Move& move, PlayerID player) const {
-  if (move.id < 0 || move.id >= NUM_PIECES) {
-    return false;
-  }
-  const int piece_id = move.id;
-  const Piece& piece = pieces[piece_id];
-
-  if (piece.owner != player || piece.isFinished()) {
-    return false;
-  }
-
-  // A move is a capture if the simulation shows at least one piece was
-  // captured.
-  return calculateMoveResult(piece).captured_count > 0;
+  return getMoveProperties(move, player).is_capture;
 }
 
 const Piece& Board::getPiece(int piece_id) const { return pieces[piece_id]; }

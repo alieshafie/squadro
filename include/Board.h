@@ -49,6 +49,15 @@ class Board {
   // می‌شوند
   void generateCaptureMoves(PlayerID player, MoveList& moves) const;
 
+  struct MoveProperties {
+    bool is_valid = false;
+    bool is_capture = false;
+  };
+
+  // A unified function to get all relevant properties of a move at once.
+  // This is more efficient than calling isMoveValid and isCapture separately.
+  MoveProperties getMoveProperties(const Move& move, PlayerID player) const;
+
   // بررسی اینکه آیا یک حرکت در وضعیت فعلی معتبر است یا نه
   bool isMoveValid(const Move& move, PlayerID player) const;
 

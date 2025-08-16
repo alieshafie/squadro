@@ -37,7 +37,6 @@ class AIPlayer {
 
   void updateHistoryScore(const Board::AppliedMoveInfo& move_info, int depth);
   void updateKillerMove(const Move& move, int ply);
-  int getMoveScore(const Move& move, int ply, const GameState& state) const;
   void sortMoves(MoveList& moves, int ply, const GameState& state,
                  const Move& tt_best_move);
 

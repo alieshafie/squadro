@@ -162,8 +162,12 @@ int main() {
 
     total_nodes_p1 += result.total_nodes_p1;
     total_nodes_p2 += result.total_nodes_p2;
-    total_tt_hits_p1 += result.total_tt_hits_p1;
-    total_tt_hits_p2 += result.total_tt_hits_p2;
+    // The result already contains the cumulative total, so just assign from the
+    // last game.
+    if (!results.empty()) {
+      total_tt_hits_p1 = results.back().total_tt_hits_p1;
+      total_tt_hits_p2 = results.back().total_tt_hits_p2;
+    }
     total_time_all_p1 += result.total_time_p1;
     total_time_all_p2 += result.total_time_p2;
     total_nps_p1 += result.avg_nodes_per_second_p1;

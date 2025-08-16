@@ -260,41 +260,54 @@ void AIPlayer::updateKillerMove(const Move& move, int ply) {
   }
 }
 
-int AIPlayer::getMoveScore(const Move& move, int ply,
-                           const GameState& state) const {
-  if (state.getBoard().isCapture(move, state.getCurrentPlayer()))
-    return 9000000;
-  if (ply < MAX_PLY) {
-    if (killer_moves[ply][0].id == move.id) return 8000000;
-    if (killer_moves[ply][1].id == move.id) return 7000000;
-  }
-  int piece_idx = move.id;
-  if (piece_idx >= 0 && piece_idx < MAX_PIECE_IDX) {
-    const auto& piece = state.getBoard().getPiece(piece_idx);
-    int pos_idx = piece.row * NUM_COLS + piece.col;
-    if (pos_idx >= 0 && pos_idx < NUM_ROWS * NUM_COLS) {
-      return history_table[piece_idx][pos_idx];
-    }
-  }
-  return 0;
-}
-
 void AIPlayer::sortMoves(MoveList& moves, int ply, const GameState& state,
                          const Move& tt_best_move) {
-  std::vector<ScoredMove> scored_moves;
-  scored_moves.reserve(moves.size());
-  for (const auto& move : moves) {
+  // OPTIMIZATION: Use a stack-allocated std::array to avoid heap allocation.
+  std::array<ScoredMove, PIECES_PER_PLAYER> scored_moves;
+
+  const Board& board = state.getBoard();  // Get a reference to the board
+  PlayerID current_player = state.getCurrentPlayer();
+  size_t num_moves = moves.size();
+
+  for (size_t i = 0; i < num_moves; ++i) {
+    const auto& move = moves[i];
     int score = 0;
     if (tt_best_move.id != -1 && move.id == tt_best_move.id) {
-      score = 10000000;
+      score = 10000000;  // PV move has highest priority
     } else {
-      score = getMoveScore(move, ply, state);
+      // Get move properties once to avoid redundant calculations
+      Board::MoveProperties props =
+          board.getMoveProperties(move, current_player);
+      if (props.is_capture) {
+        score = 9000000;  // Capture bonus
+      } else {
+        if (ply < MAX_PLY) {
+          if (killer_moves[ply][0].id == move.id)
+            score = 8000000;
+          else if (killer_moves[ply][1].id == move.id)
+            score = 7000000;
+          else {
+            // History score for quiet moves
+            int piece_idx = move.id;
+            if (piece_idx >= 0 && piece_idx < MAX_PIECE_IDX) {
+              const auto& piece = board.getPiece(piece_idx);
+              int pos_idx = piece.row * NUM_COLS + piece.col;
+              if (pos_idx >= 0 && pos_idx < NUM_ROWS * NUM_COLS) {
+                score = history_table[piece_idx][pos_idx];
+              }
+            }
+          }
+        }
+      }
     }
-    scored_moves.push_back({move, score});
+    scored_moves[i] = {move, score};
   }
-  std::sort(scored_moves.begin(), scored_moves.end(),
+
+  // Sort only the part of the array that contains valid moves
+  std::sort(scored_moves.begin(), scored_moves.begin() + num_moves,
             std::greater<ScoredMove>());
-  for (size_t i = 0; i < moves.size(); ++i) {
+
+  for (size_t i = 0; i < num_moves; ++i) {
     moves[i] = scored_moves[i].move;
   }
 }
