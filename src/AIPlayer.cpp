@@ -120,6 +120,12 @@ int AIPlayer::alphaBeta(GameState& state, int depth, int alpha, int beta,
     return Heuristics::evaluate(state, ai_player_id);
   }
 
+  // If this is the root node, make sure we have a default move to fall back on,
+  // even if no move improves alpha. This prevents returning a null move.
+  if (best_move) {
+    *best_move = legal_moves[0];
+  }
+
   // Initialize best_local_move with the first legal move. This ensures that
   // even if all moves fail high/low, we have at least one move to return.
   Move best_local_move = legal_moves[0];
