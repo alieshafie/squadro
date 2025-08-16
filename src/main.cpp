@@ -128,10 +128,14 @@ int main(int argc, char *argv[]) {
             current_game_state.applyMove(best_move);
             std::cout << "Local game state updated." << std::endl;
           } else {
-            std::cerr << "FATAL ERROR: Failed to send move to GUI. Terminating."
-                      << std::endl;
-            network_manager.stopListening();
-            return 1;
+            // std::cerr << "FATAL ERROR: Failed to send move to GUI.
+            // Terminating."
+            //           << std::endl;
+            // network_manager.stopListening();
+            // return 1;
+            std::cerr
+                << "WARNING: Failed to send move to GUI. Continuing anyway."
+                << std::endl;
           }
         } else {
           std::cerr
